@@ -1,0 +1,94 @@
+import type { ExchangeAdapter, NormalizedTick } from '../types';
+
+/**
+ * Hardcoded KRW ticker fallback — used for instant render before REST API responds.
+ */
+const KRW_TICKERS_FALLBACK = [
+  'BTC', 'ETH', 'XRP', 'SOL', 'TRX', 'PENGU', 'AXS', 'ALGO',
+  'KAITO', 'MOVE', 'SUI', 'CHZ', 'PUMP', 'ADA', 'BCH', 'FLOW',
+  'DOGE', 'PEPE', 'FIL', 'XPL', 'NEAR', 'AVAX', 'UNI',
+];
+
+/** Module-level cache for REST-fetched tickers */
+let cachedKrwTickers: string[] | null = null;
+
+export const upbitAdapter: ExchangeAdapter = {
+  id: 'upbit',
+  name: 'Upbit',
+  availableQuoteCurrencies: ['KRW'],
+
+  getWebSocketUrl() {
+    return 'wss://api.upbit.com/websocket/v1';
+  },
+
+  getSubscribeMessage(quoteCurrency: string, tickers: string[]): string {
+    const codes = tickers.map(t => `${quoteCurrency}-${t}`);
+    // Include cross-rate ticker for KRW↔USDT conversion
+    if (quoteCurrency === 'KRW' && !codes.includes('KRW-USDT')) {
+      codes.push('KRW-USDT');
+    }
+    return JSON.stringify([
+      { ticket: 'premium-table' },
+      { type: 'ticker', codes },
+      { format: 'SIMPLE' },
+    ]);
+  },
+
+  parseMessage(data: unknown): NormalizedTick | null {
+    // Upbit sends Blob wrapped in MessageEvent
+    if (!(data instanceof Object) || !('data' in data)) return null;
+    const event = data as { data: unknown };
+    if (!(event.data instanceof Blob)) return null;
+
+    // Return a promise-wrapped result won't work here.
+    // The caller must handle Blob async parsing separately.
+    // This method handles the already-parsed JSON object.
+    return null;
+  },
+
+  getAvailableTickers(quoteCurrency: string): string[] {
+    if (quoteCurrency === 'KRW') return cachedKrwTickers ?? KRW_TICKERS_FALLBACK;
+    return [];
+  },
+
+  async fetchAvailableTickers(quoteCurrency: string): Promise<string[]> {
+    if (quoteCurrency !== 'KRW') return [];
+    if (cachedKrwTickers) return cachedKrwTickers;
+
+    try {
+      const res = await fetch('/api/upbit/v1/market/all');
+      if (!res.ok) throw new Error(`Upbit REST ${res.status}`);
+      const data = (await res.json()) as { market: string }[];
+      const tickers = data
+        .filter(m => m.market.startsWith('KRW-'))
+        .map(m => m.market.split('-')[1]!);
+      cachedKrwTickers = tickers;
+      return tickers;
+    } catch (e) {
+      console.warn('Upbit REST fetch failed, using fallback:', e);
+      return KRW_TICKERS_FALLBACK;
+    }
+  },
+
+  normalizeSymbol(rawSymbol: string): string {
+    // "KRW-BTC" → "BTC"
+    return rawSymbol.split('-')[1] ?? rawSymbol;
+  },
+};
+
+/**
+ * Parse a decoded Upbit message (post Blob→JSON).
+ * Separate from parseMessage because Blob decoding is async.
+ */
+export function parseUpbitJson(parsed: Record<string, unknown>): NormalizedTick | null {
+  const code = parsed.cd as string | undefined;
+  const price = parsed.tp as number | undefined;
+  if (!code || typeof price !== 'number') return null;
+
+  const parts = code.split('-');
+  const quoteCurrency = parts[0] ?? '';
+  const ticker = parts[1] ?? '';
+  if (!ticker) return null;
+
+  return { ticker, price, quoteCurrency };
+}
