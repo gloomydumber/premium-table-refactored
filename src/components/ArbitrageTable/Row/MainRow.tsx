@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { TableCell } from '@mui/material';
-import PushPinIcon from '@mui/icons-material/PushPin';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import type { MarketRow } from '../../../types/market';
 import { formatPrice, formatPremium, calculatePremiumBackgroundColor } from '../../../utils/format';
 
@@ -10,6 +12,7 @@ interface MainRowProps {
   premium: number;
   quoteCurrencyA: string;
   quoteCurrencyB: string;
+  isOpen: boolean;
   onTogglePin: (ticker: string) => void;
   onToggleExpand: (ticker: string) => void;
   onToggleMute: (ticker: string) => void;
@@ -25,6 +28,7 @@ function MainRowInner({
   premium,
   quoteCurrencyA,
   quoteCurrencyB,
+  isOpen,
   onTogglePin,
   onToggleExpand,
   onToggleMute,
@@ -87,49 +91,74 @@ function MainRowInner({
   return (
     <>
       <TableCell
-        sx={{ color: tickerColor, fontWeight: 'bold', cursor: row.isPinned ? 'pointer' : 'default' }}
-        onClick={() => row.isPinned && onToggleExpand(row.ticker)}
+        sx={{ color: tickerColor, fontWeight: 'bold' }}
       >
-        <span
-          style={{ cursor: 'pointer', userSelect: 'none' }}
-          onClick={(e) => { e.stopPropagation(); onTogglePin(row.ticker); }}
-        >
-          {row.isPinned && (
-            <PushPinIcon sx={{ fontSize: '0.7rem', mr: 0.5, verticalAlign: 'middle', color: '#00ff00' }} />
-          )}
-          {row.ticker}
-        </span>
-        <ArrowDownwardIcon
-          onClick={(e) => { e.stopPropagation(); onToggleMute(row.ticker); }}
-          sx={{
-            fontSize: '0.75rem',
-            ml: 0.5,
-            verticalAlign: 'middle',
-            cursor: 'pointer',
-            color: row.isMuted ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.4)',
-            visibility: row.isMuted ? 'visible' : 'hidden',
-            'tr:hover &': { visibility: 'visible' },
-          }}
-        />
+        <span style={{ userSelect: 'none' }}>{row.ticker}</span>
+        {!row.isMuted && (
+          <ArrowUpwardIcon
+            onClick={() => onTogglePin(row.ticker)}
+            sx={{
+              fontSize: '0.75rem',
+              ml: 0.5,
+              verticalAlign: 'middle',
+              cursor: 'pointer',
+              color: row.isPinned ? '#00ff00' : 'rgba(255, 255, 255, 0.4)',
+              visibility: row.isPinned ? 'visible' : 'hidden',
+              'tr:hover &': { visibility: 'visible' },
+            }}
+          />
+        )}
+        {!row.isPinned && (
+          <ArrowDownwardIcon
+            onClick={() => onToggleMute(row.ticker)}
+            sx={{
+              fontSize: '0.75rem',
+              ml: row.isMuted ? 0.5 : 0.3,
+              verticalAlign: 'middle',
+              cursor: 'pointer',
+              color: row.isMuted ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.4)',
+              visibility: row.isMuted ? 'visible' : 'hidden',
+              'tr:hover &': { visibility: 'visible' },
+            }}
+          />
+        )}
+        {row.isPinned && (
+          isOpen ? (
+            <ExpandLessIcon
+              onClick={() => onToggleExpand(row.ticker)}
+              sx={{ fontSize: '0.9rem', ml: 0.3, verticalAlign: 'middle', cursor: 'pointer', color: 'lime' }}
+            />
+          ) : (
+            <ExpandMoreIcon
+              onClick={() => onToggleExpand(row.ticker)}
+              sx={{
+                fontSize: '0.9rem',
+                ml: 0.3,
+                verticalAlign: 'middle',
+                cursor: 'pointer',
+                color: 'rgba(255, 255, 255, 0.4)',
+                visibility: 'hidden',
+                'tr:hover &': { visibility: 'visible' },
+              }}
+            />
+          )
+        )}
       </TableCell>
       <TableCell
         align="right"
         sx={{ fontVariantNumeric: 'tabular-nums', color: flashColorA, transition: 'color 0.1s ease-out', opacity: mutedOpacity }}
-        onClick={() => row.isPinned && onToggleExpand(row.ticker)}
       >
         {formatPrice(row.priceA, quoteCurrencyA)}
       </TableCell>
       <TableCell
         align="right"
         sx={{ fontVariantNumeric: 'tabular-nums', color: flashColorB, transition: 'color 0.1s ease-out', opacity: mutedOpacity }}
-        onClick={() => row.isPinned && onToggleExpand(row.ticker)}
       >
         {formatPrice(row.priceB, quoteCurrencyB)}
       </TableCell>
       <TableCell
         align="right"
         sx={{ fontVariantNumeric: 'tabular-nums', opacity: mutedOpacity }}
-        onClick={() => row.isPinned && onToggleExpand(row.ticker)}
       >
         <span style={{ backgroundColor: premiumBg, padding: '1px 4px', borderRadius: 2 }}>
           {formatPremium(premium)}
@@ -144,6 +173,7 @@ function areEqual(prev: MainRowProps, next: MainRowProps) {
     prev.row === next.row &&
     prev.quoteCurrencyA === next.quoteCurrencyA &&
     prev.quoteCurrencyB === next.quoteCurrencyB &&
+    prev.isOpen === next.isOpen &&
     prev.isArbitrageable === next.isArbitrageable &&
     prev.row.isMuted === next.row.isMuted &&
     // Compare formatted strings: tiny cross-rate fluctuations that don't

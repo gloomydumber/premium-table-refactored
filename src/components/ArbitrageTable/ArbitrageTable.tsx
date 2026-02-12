@@ -18,6 +18,7 @@ function MainRowByTicker({
   ticker,
   quoteCurrencyA,
   quoteCurrencyB,
+  isOpen,
   onTogglePin,
   onToggleExpand,
   onToggleMute,
@@ -25,6 +26,7 @@ function MainRowByTicker({
   ticker: string;
   quoteCurrencyA: string;
   quoteCurrencyB: string;
+  isOpen: boolean;
   onTogglePin: (ticker: string) => void;
   onToggleExpand: (ticker: string) => void;
   onToggleMute: (ticker: string) => void;
@@ -42,6 +44,7 @@ function MainRowByTicker({
       premium={premium}
       quoteCurrencyA={quoteCurrencyA}
       quoteCurrencyB={quoteCurrencyB}
+      isOpen={isOpen}
       onTogglePin={onTogglePin}
       onToggleExpand={onToggleExpand}
       onToggleMute={onToggleMute}
@@ -208,6 +211,7 @@ export function ArbitrageTable() {
             ticker={virtualRow.ticker}
             quoteCurrencyA={quoteCurrencyA}
             quoteCurrencyB={quoteCurrencyB}
+            isOpen={openRows.has(virtualRow.ticker)}
             onTogglePin={handleTogglePin}
             onToggleExpand={handleToggleExpand}
             onToggleMute={handleToggleMute}

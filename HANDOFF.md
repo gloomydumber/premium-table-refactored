@@ -8,7 +8,24 @@ Last updated: 2026-02-12
 
 ## Completed This Session (2026-02-12)
 
-### 0. Clear Pin/Expand/Mute State on Tab Switch
+### 0. Icon-Based Row Actions (Pin ↑, Mute ↓, Expand ▾)
+
+**Change:** Replaced all row-wide click handlers with dedicated icons in the ticker cell. Removed `PushPinIcon`. Removed `onClick` from all price/premium cells. Added `isOpen` prop through `ArbitrageTable → MainRowByTicker → MemoMainRow` + `areEqual` check.
+
+**Icon visibility by state:**
+| State | ↑ Pin | ↓ Mute | Expand |
+|-------|-------|--------|--------|
+| **Neutral** | hover-reveal | hover-reveal | hidden |
+| **Pinned** | always visible (green) | hidden | ▴ always visible (lime) when open, ▾ hover-reveal when closed |
+| **Muted** | hidden | always visible | hidden |
+
+Pin and mute icons are mutually exclusive in the UI — pinned rows never show ↓, muted rows never show ↑.
+
+**Files changed:**
+- `src/components/ArbitrageTable/ArbitrageTable.tsx` — Pass `isOpen={openRows.has(ticker)}` to `MainRowByTicker`
+- `src/components/ArbitrageTable/Row/MainRow.tsx` — Replaced `PushPinIcon` with `ArrowUpwardIcon`, added `ExpandMore/LessIcon` for expand, removed row-wide `onClick`, added `isOpen` prop + `areEqual` check
+
+### 1. Clear Pin/Expand/Mute State on Tab Switch
 
 **Problem:** Switching between stablecoin tabs (e.g., USDT → USDC) or exchange pair tabs preserved the pinned, expanded, and muted row state from the previous tab. Rows that were pinned/muted on USDT appeared pinned/muted on USDC even though they might not exist or have different data.
 
