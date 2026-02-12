@@ -29,6 +29,15 @@ Last updated: 2026-02-12
 **Files changed:**
 - `src/hooks/useExchangeWebSocket.ts` — Added `tickerSetRef` and filter guard in both Upbit and Binance code paths
 
+### 3. Pin→Expand Stale Closure Fix
+
+**Problem:** After pinning a row, clicking to expand it didn't work for ~10 seconds. Two-layer stale closure: `handleToggleExpand` captured `pinned` (a Set) in its closure. When pinning updated the Set, React created a new callback — but `MemoMainRow`'s `areEqual` doesn't compare callback props, so the memoized row kept the old `handleToggleExpand` where `pinned` didn't include the just-pinned ticker. The guard `if (!pinned.has(ticker)) return` silently dropped the expand click. It only started working after a price update caused `MemoMainRow` to re-render and pick up the new callback.
+
+**Fix:** Replaced `pinned` closure capture with `pinnedRef` (a ref always pointing to the latest `pinned` Set). `handleToggleExpand` now has stable identity (`[setOpenRows]` deps only) and always reads current state via the ref.
+
+**Files changed:**
+- `src/components/ArbitrageTable/ArbitrageTable.tsx` — Added `pinnedRef`, `handleToggleExpand` reads `pinnedRef.current` instead of `pinned`
+
 ---
 
 ## Completed Previous Session (2026-02-11)
@@ -105,6 +114,8 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 8. **Cross-rate ticker subscription is dynamic.** `getSubscribeMessage` receives the cross-rate ticker from `crossRateConfig`, not hardcoded. Hardcoding breaks any tab that uses a different stablecoin (e.g., USDC).
 
 9. **Incoming WS messages are filtered against `commonTickers`.** `tickerSetRef` in `useExchangeWebSocket` prevents stale/orphan tickers from leaking into the row map during tab switches.
+
+10. **`handleToggleExpand` must use `pinnedRef`, not `pinned` directly.** `MemoMainRow`'s `areEqual` skips callback comparison, so a closure capturing `pinned` goes stale until the next price-driven re-render. The ref ensures the guard always sees the latest pinned state.
 
 ---
 
