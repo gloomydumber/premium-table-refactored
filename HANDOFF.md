@@ -145,14 +145,16 @@ Pin and mute icons are mutually exclusive in the UI — pinned rows never show �
 - `src/components/ArbitrageTable/ArbitrageTable.tsx` — Pass `isOpen={openRows.has(ticker)}` to `MainRowByTicker`
 - `src/components/ArbitrageTable/Row/MainRow.tsx` — Replaced `PushPinIcon` with `ArrowUpwardIcon`, added `ExpandMore/LessIcon` for expand, removed row-wide `onClick`, added `isOpen` prop + `areEqual` check
 
-### 1. Clear Pin/Expand/Mute State on Tab Switch
+### 1. Clear Pin/Expand/Mute State on Tab Switch (superseded by localStorage persistence in 0.1.7)
 
 **Problem:** Switching between stablecoin tabs (e.g., USDT → USDC) or exchange pair tabs preserved the pinned, expanded, and muted row state from the previous tab. Rows that were pinned/muted on USDT appeared pinned/muted on USDC even though they might not exist or have different data.
 
-**Fix:** Reset `pinnedAtom`, `openRowsAtom`, and `mutedAtom` to empty Sets in the `useEffect` that fires on market pair change in `WebSocketProvider`. Since `clearMarketData` already resets `rowMapAtom` to `{}`, the `isPinned`/`isMuted` flags on `MarketRow` objects are recreated as `false` by `upsertRow`.
+**Original fix:** Reset `pinnedAtom`, `openRowsAtom`, and `mutedAtom` to empty Sets on tab switch.
+
+**Superseded by 0.1.7:** Tab switch now restores per-tab prefs from localStorage instead of clearing to empty. See "Persist User Preferences" above.
 
 **Files changed:**
-- `src/components/WebSocketProvider/WebSocketProvider.tsx` — Import and reset `pinnedAtom`, `openRowsAtom`, `mutedAtom` on pair change
+- `src/components/WebSocketProvider/WebSocketProvider.tsx` — Now calls `loadPrefs()` instead of resetting to empty Sets
 
 ### 1. Mute Feature — Hover-Reveal Down-Arrow to Sort Rows to Bottom
 
@@ -290,7 +292,7 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 
 14. **No fallback ticker arrays.** `getAvailableTickers` returns `[]` when cache is empty. Skeleton rows fill the table until REST APIs respond. Do not re-add hardcoded fallback arrays.
 
-15. **User preferences persist in localStorage per tab.** Key format: `premium-table:prefs:${marketKeyA}|${marketKeyB}`. `WebSocketProvider` restores on tab switch; `ArbitrageTable` saves via effect. When data first arrives (tickers 0→N), a one-time sync sets `isPinned`/`isMuted` flags on `rowMapAtom` to match restored Sets.
+15. **User preferences persist in localStorage per tab.** Key format: `premium-table:prefs:${marketKeyA}|${marketKeyB}`. `WebSocketProvider` loads prefs on tab switch/refresh; `ArbitrageTable` saves via effect with `prevKeysRef` guard (skips saving when market keys just changed, preventing stale atom values from overwriting saved prefs). A continuous sync effect sets `isPinned`/`isMuted` flags on `rowMapAtom` as rows arrive in incremental WS batches.
 
 16. **Sort freeze is disabled during skeleton loading.** `TableBody` in `VirtuosoTableComponents.tsx` checks `tickersAtom.length > 0` before setting `sortFrozenAtom` to `true`. Without this, hovering skeleton rows would freeze an empty sort snapshot and block real data from appearing correctly.
 
