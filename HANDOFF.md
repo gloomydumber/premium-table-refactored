@@ -8,7 +8,16 @@ Last updated: 2026-02-12
 
 ## Completed This Session (2026-02-12)
 
-### 0. Mute Feature — Hover-Reveal Down-Arrow to Sort Rows to Bottom
+### 0. Clear Pin/Expand/Mute State on Tab Switch
+
+**Problem:** Switching between stablecoin tabs (e.g., USDT → USDC) or exchange pair tabs preserved the pinned, expanded, and muted row state from the previous tab. Rows that were pinned/muted on USDT appeared pinned/muted on USDC even though they might not exist or have different data.
+
+**Fix:** Reset `pinnedAtom`, `openRowsAtom`, and `mutedAtom` to empty Sets in the `useEffect` that fires on market pair change in `WebSocketProvider`. Since `clearMarketData` already resets `rowMapAtom` to `{}`, the `isPinned`/`isMuted` flags on `MarketRow` objects are recreated as `false` by `upsertRow`.
+
+**Files changed:**
+- `src/components/WebSocketProvider/WebSocketProvider.tsx` — Import and reset `pinnedAtom`, `openRowsAtom`, `mutedAtom` on pair change
+
+### 1. Mute Feature — Hover-Reveal Down-Arrow to Sort Rows to Bottom
 
 **Purpose:** Some rows have high premiums but are meaningless (delisting, abnormal market conditions). Users can now mute rows to push them to the bottom of the table.
 
@@ -137,6 +146,8 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 10. **`handleToggleExpand` must use `pinnedRef`, not `pinned` directly.** `MemoMainRow`'s `areEqual` skips callback comparison, so a closure capturing `pinned` goes stale until the next price-driven re-render. The ref ensures the guard always sees the latest pinned state.
 
 11. **Pin and mute are mutually exclusive.** `handleTogglePin` unmutes; `handleToggleMute` unpins + closes detail. Both `mutedAtom` and `isMuted` on `MarketRow` must stay in sync (same pattern as `pinnedAtom` / `isPinned`). `handleToggleMute` uses `pinnedRef` (not `pinned` closure) for the same stale-closure reason as `handleToggleExpand`.
+
+12. **UI state atoms must be cleared on tab switch.** `pinnedAtom`, `openRowsAtom`, and `mutedAtom` are reset in `WebSocketProvider`'s pair-change `useEffect` alongside `clearMarketData`. If a new UI state atom is added (e.g., selected rows), it must also be cleared there.
 
 ---
 
