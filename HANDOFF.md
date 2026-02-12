@@ -8,7 +8,7 @@ Last updated: 2026-02-12
 
 ## Completed This Session (2026-02-12)
 
-### Persist User Preferences (Pin/Mute/Expand) with localStorage
+### Persist User Preferences (Pin/Mute/Expand) with localStorage (0.1.6 → 0.1.7)
 
 **Problem:** Pin, mute, and expand state was lost on page refresh and tab switch. Users had to re-pin/mute rows every time.
 
