@@ -8,6 +8,22 @@ Last updated: 2026-02-13
 
 ## Completed This Session (2026-02-13)
 
+### README Installation Section Update
+
+Updated the Installation section in `README.md` to present two clear options for configuring the `@gloomydumber` GitHub Packages scope:
+- **Option A:** Project-level `.npmrc` file with registry mapping
+- **Option B:** `npm login --scope=@gloomydumber` (per-user, no file needed)
+
+No authentication token is required since the package is published from a public repository.
+
+**Files changed:**
+- `README.md` — Rewrote Installation section
+
+### package-lock.json version sync
+
+Committed `package-lock.json` version bump from `0.1.8` to `0.1.10` (was out of sync with `package.json`).
+
+
 ### Delisted Ticker Filter + Alias Mapping in Binance Adapter (0.1.10)
 
 **Problem:** Binance's `/api/v3/ticker/price` returns tickers that are delisted (e.g., WAVES, AERGO, ELF, SNT) with stale non-zero prices, and tickers that were renamed (e.g., BEAMX on Binance = BEAM on Upbit) which don't match Upbit's canonical names. This caused delisted tickers appearing in the table with stale prices and renamed tickers missing from the table (intersection fails).
@@ -419,3 +435,4 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 - **Export/share:** Export current table snapshot (pinned rows, premiums) as CSV or shareable link. Considerable for future.
 - **Alerts/notifications:** Notify when a ticker's premium crosses a user-defined threshold. Considerable for future.
 - **Shared ticker normalization utility:** Delisted-ticker filtering and alias mapping (e.g., `DELISTED_TICKERS`, `TICKER_ALIASES`, `REVERSE_ALIASES`) currently live as constants inside `binance.ts`. When adding more exchanges (Bithumb, OKX, HTX, Coinbase, etc.), each adapter will need the same pattern. Consider extracting a shared utility (e.g., `createTickerNormalizer({ delisted, aliases })`) that returns filter/map/reverse-map helpers, so each adapter can declare its data and get consistent behavior without duplicating the logic. Not needed until a second adapter requires it.
+- **GitHub Actions automated publish:** Currently publishing to GitHub Packages is done manually via `npm publish`. Consider adding a GitHub Actions workflow (e.g., `.github/workflows/publish.yml`) that automatically publishes on version tag push or release creation. This would replace the manual `npm publish` step and ensure consistent, reproducible builds.
