@@ -8,6 +8,41 @@ Last updated: 2026-02-12
 
 ## Completed This Session (2026-02-12)
 
+### Remove Fallback Tickers + Skeleton Loading UI (0.1.5)
+
+**Change:** Deleted all hardcoded fallback ticker arrays (`KRW_TICKERS_FALLBACK`, `USDT_TICKERS_FALLBACK`, `USDC_TICKERS_FALLBACK`) from exchange adapters. Added skeleton loading rows (30 shimmer rows) that display while REST APIs fetch tickers and WS prices arrive.
+
+**Motivation:** Fallback arrays were ugly maintenance burdens that could drift out of sync with actual exchange listings. The table previously showed 0 rows (blank) before first WS price with no loading indication. Now it shows skeleton rows immediately, replaced by real data once prices stream in.
+
+**How it works:**
+1. `buildDefaultMarketPair()` → `getAvailableTickers()` returns `[]` → `commonTickers = []`
+2. `sortedTickersAtom = []` → ArbitrageTable renders 30 skeleton rows
+3. REST APIs respond → `commonTickers` updated → WS subscribes with full list
+4. First prices arrive → skeleton replaced by real rows
+5. Subsequent tab switches use cached REST data → instant data, minimal/no skeleton
+
+**Files changed:**
+- `src/exchanges/adapters/upbit.ts` — Deleted `KRW_TICKERS_FALLBACK`, `getAvailableTickers` returns `cachedKrwTickers ?? []`, catch returns `[]`
+- `src/exchanges/adapters/binance.ts` — Deleted `USDT_TICKERS_FALLBACK` and `USDC_TICKERS_FALLBACK`, `getAvailableTickers` returns `tickerCache.get(quoteCurrency) ?? []`, catch returns `[]`
+- `src/store/marketPairAtom.ts` — `initMarketPairAsync` guard simplified from `dynamicTickers.length > defaultPair.commonTickers.length` to `dynamicTickers.length > 0`
+- `src/components/ArbitrageTable/ArbitrageTable.tsx` — Added `'skeleton'` to `VirtualRow` type, generates 30 skeleton rows when `sortedTickers` is empty, renders `<SkeletonRow />` for skeleton type
+
+### Sort Freeze Disabled During Skeleton Loading
+
+**Problem:** Hovering over skeleton rows triggered the sort-freeze feature (`sortFrozenAtom`), which is meaningless when there's no real data to sort.
+
+**Fix:** `TableBody` in `VirtuosoTableComponents.tsx` now reads `tickersAtom` and only sets `sortFrozenAtom` to `true` on `mouseEnter` when `tickers.length > 0`.
+
+**Files changed:**
+- `src/components/ArbitrageTable/VirtuosoTableComponents.tsx` — Added `useAtomValue(tickersAtom)`, `onMouseEnter` guarded by `hasData`
+
+### Binance REST Endpoint Updated
+
+**Change:** Switched Binance ticker discovery endpoint from `https://data-api.binance.vision/api/v3/exchangeInfo` to `https://api.binance.com/api/v3/exchangeInfo`.
+
+**Files changed:**
+- `src/exchanges/adapters/binance.ts` — Updated fetch URL
+
 ### MUI v6 → v7 Upgrade (0.1.4)
 
 **Change:** Upgraded MUI devDependencies from v6.4.1 to v7.0.0+. Widened peerDependencies to accept both `^6.0.0 || ^7.0.0` for backward compatibility.
@@ -158,7 +193,7 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 - `vite.config.ts` — Added dev proxy `/api/upbit` → `https://api.upbit.com` (Upbit REST has CORS restrictions)
 - `src/exchanges/types.ts` — Added optional `fetchAvailableTickers?(quoteCurrency: string): Promise<string[]>` to `ExchangeAdapter` interface
 - `src/exchanges/adapters/upbit.ts` — `fetchAvailableTickers('KRW')` fetches `/api/upbit/v1/market/all`, filters `KRW-` prefix, caches in module-level variable. `getAvailableTickers` returns cache if populated, else hardcoded fallback.
-- `src/exchanges/adapters/binance.ts` — `fetchAvailableTickers` uses `https://data-api.binance.vision/api/v3/exchangeInfo` (CORS-friendly). Caches per quote currency. **Also switched WS from URL-encoded streams to subscribe-based**: `getWebSocketUrl` returns base URL `wss://stream.binance.com:9443/ws`, `getSubscribeMessage` sends `{ method: 'SUBSCRIBE', params: [...], id: 1 }`. This avoids URL length limits with 100+ tickers.
+- `src/exchanges/adapters/binance.ts` — `fetchAvailableTickers` uses `https://api.binance.com/api/v3/exchangeInfo`. Caches per quote currency. **Also switched WS from URL-encoded streams to subscribe-based**: `getWebSocketUrl` returns base URL `wss://stream.binance.com:9443/ws`, `getSubscribeMessage` sends `{ method: 'SUBSCRIBE', params: [...], id: 1 }`. This avoids URL length limits with 100+ tickers.
 - `src/exchanges/pair.ts` — Added `fetchCommonTickers()` async function (calls both adapters' `fetchAvailableTickers`, intersects results)
 - `src/store/marketPairAtom.ts` — Added `initMarketPairAsync()` that fetches dynamic tickers and updates atom if more tickers found than fallback
 - `src/components/WebSocketProvider/WebSocketProvider.tsx` — Calls `initMarketPairAsync` on first mount. Table renders immediately with 23 fallback tickers, re-renders with full set (~80-120) once REST APIs respond.
@@ -229,6 +264,10 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 12. **UI state atoms must be cleared on tab switch.** `pinnedAtom`, `openRowsAtom`, `mutedAtom`, and `sortFrozenAtom` are reset in `WebSocketProvider`'s pair-change `useEffect` alongside `clearMarketData`. If a new UI state atom is added (e.g., selected rows), it must also be cleared there.
 
 13. **Sort freezes on tbody hover.** `sortFrozenAtom` gates `_freezeAwareSortedAtom` which caches a `_frozenSnapshot` (module-level variable). When frozen, `sortedTickersAtom` returns the snapshot instead of the live sort. Prices still update live — only order is frozen. Do not remove the freeze layer or the snapshot variable.
+
+14. **No fallback ticker arrays.** `getAvailableTickers` returns `[]` when cache is empty. Skeleton rows fill the table until REST APIs respond. Do not re-add hardcoded fallback arrays.
+
+15. **Sort freeze is disabled during skeleton loading.** `TableBody` in `VirtuosoTableComponents.tsx` checks `tickersAtom.length > 0` before setting `sortFrozenAtom` to `true`. Without this, hovering skeleton rows would freeze an empty sort snapshot and block real data from appearing correctly.
 
 ---
 

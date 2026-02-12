@@ -1,19 +1,5 @@
 import type { ExchangeAdapter, NormalizedTick } from '../types';
 
-/**
- * Hardcoded ticker fallbacks — used for instant render before REST API responds.
- */
-const USDT_TICKERS_FALLBACK = [
-  'BTC', 'ETH', 'XRP', 'SOL', 'TRX', 'PENGU', 'AXS', 'ALGO',
-  'KAITO', 'MOVE', 'SUI', 'CHZ', 'PUMP', 'ADA', 'BCH', 'FLOW',
-  'DOGE', 'PEPE', 'FIL', 'XPL', 'NEAR', 'AVAX', 'UNI',
-];
-
-const USDC_TICKERS_FALLBACK = [
-  'BTC', 'ETH', 'XRP', 'SOL', 'DOGE', 'ADA', 'AVAX', 'SUI',
-  'NEAR', 'PEPE', 'UNI',
-];
-
 /** Module-level cache for REST-fetched tickers, keyed by quote currency */
 const tickerCache = new Map<string, string[]>();
 
@@ -69,11 +55,7 @@ export const binanceAdapter: ExchangeAdapter = {
   },
 
   getAvailableTickers(quoteCurrency: string): string[] {
-    const cached = tickerCache.get(quoteCurrency);
-    if (cached) return cached;
-    if (quoteCurrency === 'USDT') return USDT_TICKERS_FALLBACK;
-    if (quoteCurrency === 'USDC') return USDC_TICKERS_FALLBACK;
-    return [];
+    return tickerCache.get(quoteCurrency) ?? [];
   },
 
   async fetchAvailableTickers(quoteCurrency: string): Promise<string[]> {
@@ -81,7 +63,7 @@ export const binanceAdapter: ExchangeAdapter = {
     if (cached) return cached;
 
     try {
-      const res = await fetch('https://data-api.binance.vision/api/v3/exchangeInfo');
+      const res = await fetch('https://api.binance.com/api/v3/exchangeInfo');
       if (!res.ok) throw new Error(`Binance REST ${res.status}`);
       const data = (await res.json()) as {
         symbols: { baseAsset: string; quoteAsset: string; status: string }[];
@@ -92,9 +74,7 @@ export const binanceAdapter: ExchangeAdapter = {
       tickerCache.set(quoteCurrency, tickers);
       return tickers;
     } catch (e) {
-      console.warn('Binance REST fetch failed, using fallback:', e);
-      if (quoteCurrency === 'USDT') return USDT_TICKERS_FALLBACK;
-      if (quoteCurrency === 'USDC') return USDC_TICKERS_FALLBACK;
+      console.warn('Binance REST fetch failed:', e);
       return [];
     }
   },

@@ -1,14 +1,5 @@
 import type { ExchangeAdapter, NormalizedTick } from '../types';
 
-/**
- * Hardcoded KRW ticker fallback — used for instant render before REST API responds.
- */
-const KRW_TICKERS_FALLBACK = [
-  'BTC', 'ETH', 'XRP', 'SOL', 'TRX', 'PENGU', 'AXS', 'ALGO',
-  'KAITO', 'MOVE', 'SUI', 'CHZ', 'PUMP', 'ADA', 'BCH', 'FLOW',
-  'DOGE', 'PEPE', 'FIL', 'XPL', 'NEAR', 'AVAX', 'UNI',
-];
-
 /** Module-level cache for REST-fetched tickers */
 let cachedKrwTickers: string[] | null = null;
 
@@ -46,7 +37,7 @@ export const upbitAdapter: ExchangeAdapter = {
   },
 
   getAvailableTickers(quoteCurrency: string): string[] {
-    if (quoteCurrency === 'KRW') return cachedKrwTickers ?? KRW_TICKERS_FALLBACK;
+    if (quoteCurrency === 'KRW') return cachedKrwTickers ?? [];
     return [];
   },
 
@@ -64,8 +55,8 @@ export const upbitAdapter: ExchangeAdapter = {
       cachedKrwTickers = tickers;
       return tickers;
     } catch (e) {
-      console.warn('Upbit REST fetch failed, using fallback:', e);
-      return KRW_TICKERS_FALLBACK;
+      console.warn('Upbit REST fetch failed:', e);
+      return [];
     }
   },
 

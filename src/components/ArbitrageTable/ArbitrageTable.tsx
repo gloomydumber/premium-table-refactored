@@ -10,9 +10,11 @@ import { MemoMainRow, MemoDetailRow } from './Row';
 import { SkeletonRow } from './SkeletonRow';
 
 interface VirtualRow {
-  type: 'main' | 'detail';
+  type: 'main' | 'detail' | 'skeleton';
   ticker: string;
 }
+
+const SKELETON_COUNT = 30;
 
 function MainRowByTicker({
   ticker,
@@ -165,8 +167,14 @@ export function ArbitrageTable() {
     });
   }, [setPinned, setOpenRows, setRowMap, setMuted]);
 
-  // Build flat virtual row list: main rows + detail rows for expanded items
+  // Build flat virtual row list: skeleton rows when loading, else main + detail rows
   const virtualRows: VirtualRow[] = useMemo(() => {
+    if (sortedTickers.length === 0) {
+      return Array.from({ length: SKELETON_COUNT }, (_, i) => ({
+        type: 'skeleton' as const,
+        ticker: `sk-${i}`,
+      }));
+    }
     const rows: VirtualRow[] = [];
     for (const ticker of sortedTickers) {
       rows.push({ type: 'main', ticker });
@@ -197,6 +205,9 @@ export function ArbitrageTable() {
         </TableRow>
       )}
       itemContent={(_, virtualRow) => {
+        if (virtualRow.type === 'skeleton') {
+          return <SkeletonRow />;
+        }
         if (virtualRow.type === 'detail') {
           return (
             <DetailRowByTicker

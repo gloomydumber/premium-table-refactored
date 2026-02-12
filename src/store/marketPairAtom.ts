@@ -26,8 +26,8 @@ export const marketPairAtom = atom<MarketPair>(buildDefaultMarketPair());
 
 /**
  * Fetch full ticker lists from REST APIs and update the market pair atom.
- * Call once on app startup — the table renders immediately with fallback data,
- * then re-renders with the full set once this resolves.
+ * Call once on app startup — the table shows skeleton rows until this resolves,
+ * then re-renders with real data once WS prices arrive.
  */
 export async function initMarketPairAsync(set: (pair: MarketPair) => void): Promise<void> {
   const defaultPair = buildDefaultMarketPair();
@@ -38,8 +38,7 @@ export async function initMarketPairAsync(set: (pair: MarketPair) => void): Prom
     defaultPair.marketB.quoteCurrency,
   );
 
-  // Only update if we actually got more tickers than the fallback
-  if (dynamicTickers.length > defaultPair.commonTickers.length) {
+  if (dynamicTickers.length > 0) {
     set({ ...defaultPair, commonTickers: dynamicTickers });
   }
 }
