@@ -6,7 +6,7 @@ Last updated: 2026-02-11
 
 ---
 
-## Completed This Session
+## Completed This Session (2026-02-11)
 
 ### 1. Dynamic Ticker Fetching from Exchange REST APIs
 
@@ -53,6 +53,12 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 
 **Fix:** `formatPrice()` now uses `maximumFractionDigits: 20` — displays exactly what the exchange sent, no rounding/trimming.
 
+### 5. Repo Cleanup
+
+- Deleted `.continue/` folder — was redundant symlinks duplicating `.claude/skills/` (both pointed to `.agents/skills/`)
+- Deleted `.agents/` folder — moved actual skill files directly into `.claude/skills/` (jotai-expert, mui, performance, vite)
+- Git initialized, remote set to `https://github.com/gloomydumber/premium-table-refactored.git`, initial commit pushed to `origin/master`
+
 ---
 
 ## Architecture Decisions to Preserve
@@ -69,6 +75,8 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 
 6. **Virtuoso recycling guard in MainRow.** `prevTickerRef` detects when the component is reused for a different ticker and resets price refs + flash state. Without this, sort-order changes cause spurious flashes.
 
+7. **Folder structure:** Skills live directly in `.claude/skills/` (no `.agents/` indirection, no `.continue/` duplication).
+
 ---
 
 ## Known Issues / Future Work
@@ -79,3 +87,4 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 - **Sort order instability:** Premium-based sorting can cause rapid row swaps when prices fluctuate. Consider debouncing sort updates or adding a minimum delta threshold.
 - **Binance `exchangeInfo` payload** is large (~1.5MB). Consider caching it or using a lighter endpoint if available.
 - **`useWebSocketHandler` re-subscribe:** When tickers expand (REST fetch completes), ALL tickers are re-subscribed including already-subscribed ones. Binance handles duplicates gracefully, but an incremental subscribe (new tickers only) would be cleaner.
+- **Flash still needs live verification.** The cross-rate decoupling and Virtuoso recycling guard are architecturally correct but should be visually confirmed with `npm run dev` — check that rows flash independently, not all at once.
