@@ -11,4 +11,5 @@ export interface MarketRow {
   priceB: number;
   walletStatus: WalletStatus[];
   isPinned: boolean;
+  isMuted: boolean;
 }

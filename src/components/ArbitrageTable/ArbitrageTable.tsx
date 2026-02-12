@@ -3,7 +3,7 @@ import { useAtomValue, useAtom, useSetAtom } from 'jotai';
 import { TableVirtuoso } from 'react-virtuoso';
 import { TableCell, TableRow } from '@mui/material';
 import { MarketPairSelector } from '../MarketPairSelector';
-import { sortedTickersAtom, openRowsAtom, pinnedAtom, rowMapAtom, rowAtomFamily, crossRateAtom, calcPremium } from '../../store/marketAtoms';
+import { sortedTickersAtom, openRowsAtom, pinnedAtom, mutedAtom, rowMapAtom, rowAtomFamily, crossRateAtom, calcPremium } from '../../store/marketAtoms';
 import { marketPairAtom } from '../../store/marketPairAtom';
 import { virtuosoTableComponents } from './VirtuosoTableComponents';
 import { MemoMainRow, MemoDetailRow } from './Row';
@@ -20,12 +20,14 @@ function MainRowByTicker({
   quoteCurrencyB,
   onTogglePin,
   onToggleExpand,
+  onToggleMute,
 }: {
   ticker: string;
   quoteCurrencyA: string;
   quoteCurrencyB: string;
   onTogglePin: (ticker: string) => void;
   onToggleExpand: (ticker: string) => void;
+  onToggleMute: (ticker: string) => void;
 }) {
   const row = useAtomValue(rowAtomFamily(ticker));
   const crossRate = useAtomValue(crossRateAtom);
@@ -42,6 +44,7 @@ function MainRowByTicker({
       quoteCurrencyB={quoteCurrencyB}
       onTogglePin={onTogglePin}
       onToggleExpand={onToggleExpand}
+      onToggleMute={onToggleMute}
       isArbitrageable={isArbitrageable}
     />
   );
@@ -86,6 +89,9 @@ export function ArbitrageTable() {
   const [pinned, setPinned] = useAtom(pinnedAtom);
   const pinnedRef = useRef(pinned);
   pinnedRef.current = pinned;
+  const [muted, setMuted] = useAtom(mutedAtom);
+  const mutedRef = useRef(muted);
+  mutedRef.current = muted;
   const setRowMap = useSetAtom(rowMapAtom);
   const pair = useAtomValue(marketPairAtom);
 
@@ -95,6 +101,15 @@ export function ArbitrageTable() {
   const quoteCurrencyB = pair.marketB.quoteCurrency;
 
   const handleTogglePin = useCallback((ticker: string) => {
+    // Pinning a muted row unmutes it
+    if (mutedRef.current.has(ticker)) {
+      setMuted((prev) => { const n = new Set(prev); n.delete(ticker); return n; });
+      setRowMap((prev) => {
+        const row = prev[ticker];
+        if (!row) return prev;
+        return { ...prev, [ticker]: { ...row, isMuted: false } };
+      });
+    }
     setPinned((prev) => {
       const next = new Set(prev);
       if (next.has(ticker)) {
@@ -111,7 +126,7 @@ export function ArbitrageTable() {
       if (!row) return prev;
       return { ...prev, [ticker]: { ...row, isPinned: !row.isPinned } };
     });
-  }, [setPinned, setOpenRows, setRowMap]);
+  }, [setPinned, setOpenRows, setRowMap, setMuted]);
 
   const handleToggleExpand = useCallback((ticker: string) => {
     if (!pinnedRef.current.has(ticker)) return;
@@ -122,6 +137,30 @@ export function ArbitrageTable() {
       return next;
     });
   }, [setOpenRows]);
+
+  const handleToggleMute = useCallback((ticker: string) => {
+    // Muting a pinned row unpins + closes detail
+    if (pinnedRef.current.has(ticker)) {
+      setPinned((prev) => { const n = new Set(prev); n.delete(ticker); return n; });
+      setOpenRows((prev) => { const n = new Set(prev); n.delete(ticker); return n; });
+      setRowMap((prev) => {
+        const row = prev[ticker];
+        if (!row) return prev;
+        return { ...prev, [ticker]: { ...row, isPinned: false } };
+      });
+    }
+    setMuted((prev) => {
+      const next = new Set(prev);
+      if (next.has(ticker)) next.delete(ticker);
+      else next.add(ticker);
+      return next;
+    });
+    setRowMap((prev) => {
+      const row = prev[ticker];
+      if (!row) return prev;
+      return { ...prev, [ticker]: { ...row, isMuted: !row.isMuted } };
+    });
+  }, [setPinned, setOpenRows, setRowMap, setMuted]);
 
   // Build flat virtual row list: main rows + detail rows for expanded items
   const virtualRows: VirtualRow[] = useMemo(() => {
@@ -171,6 +210,7 @@ export function ArbitrageTable() {
             quoteCurrencyB={quoteCurrencyB}
             onTogglePin={handleTogglePin}
             onToggleExpand={handleToggleExpand}
+            onToggleMute={handleToggleMute}
           />
         );
       }}

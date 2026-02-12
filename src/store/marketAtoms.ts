@@ -36,6 +36,9 @@ export const pinnedAtom = atom<Set<string>>(new Set<string>());
 /** Set of expanded (open detail) tickers — only pinned rows can expand */
 export const openRowsAtom = atom<Set<string>>(new Set<string>());
 
+/** Set of muted tickers — sorted to bottom, dimmed in UI */
+export const mutedAtom = atom<Set<string>>(new Set<string>());
+
 /** Compute premium from prices and cross-rate */
 export function calcPremium(priceA: number, priceB: number, crossRate: number): number {
   if (priceA <= 0 || priceB <= 0 || crossRate <= 0) return 0;
@@ -51,6 +54,7 @@ const _rawSortedAtom = atom<string[]>((get) => {
   const crossRate = get(crossRateAtom);
   const pinned = get(pinnedAtom);
   const openRows = get(openRowsAtom);
+  const muted = get(mutedAtom);
   const tickers = get(tickersAtom);
 
   return [...tickers].sort((a, b) => {
@@ -67,6 +71,10 @@ const _rawSortedAtom = atom<string[]>((get) => {
     if (openA !== openB) return openA ? -1 : 1;
     // Then pinned
     if (pinnedA !== pinnedB) return pinnedA ? -1 : 1;
+    // Muted rows sink to bottom
+    const mutedA = muted.has(a);
+    const mutedB = muted.has(b);
+    if (mutedA !== mutedB) return mutedA ? 1 : -1;
     // Then by |premium| descending
     const premA = calcPremium(rowA.priceA, rowA.priceB, crossRate);
     const premB = calcPremium(rowB.priceA, rowB.priceB, crossRate);

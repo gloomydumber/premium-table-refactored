@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { TableCell } from '@mui/material';
 import PushPinIcon from '@mui/icons-material/PushPin';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import type { MarketRow } from '../../../types/market';
 import { formatPrice, formatPremium, calculatePremiumBackgroundColor } from '../../../utils/format';
 
@@ -11,6 +12,7 @@ interface MainRowProps {
   quoteCurrencyB: string;
   onTogglePin: (ticker: string) => void;
   onToggleExpand: (ticker: string) => void;
+  onToggleMute: (ticker: string) => void;
   isArbitrageable: boolean;
 }
 
@@ -25,6 +27,7 @@ function MainRowInner({
   quoteCurrencyB,
   onTogglePin,
   onToggleExpand,
+  onToggleMute,
   isArbitrageable,
 }: MainRowProps) {
   const [flashA, setFlashA] = useState<'up' | 'down' | null>(null);
@@ -76,9 +79,10 @@ function MainRowInner({
   }, [row.priceB]);
 
   const premiumBg = calculatePremiumBackgroundColor(premium);
-  const tickerColor = isArbitrageable ? '#00ff00' : '#ff0000';
+  const tickerColor = row.isMuted ? 'rgba(255, 255, 255, 0.3)' : isArbitrageable ? '#00ff00' : '#ff0000';
   const flashColorA = flashA === 'up' ? '#ff0000' : flashA === 'down' ? '#0000ff' : undefined;
   const flashColorB = flashB === 'up' ? '#ff0000' : flashB === 'down' ? '#0000ff' : undefined;
+  const mutedOpacity = row.isMuted ? 0.3 : 1;
 
   return (
     <>
@@ -95,24 +99,36 @@ function MainRowInner({
           )}
           {row.ticker}
         </span>
+        <ArrowDownwardIcon
+          onClick={(e) => { e.stopPropagation(); onToggleMute(row.ticker); }}
+          sx={{
+            fontSize: '0.75rem',
+            ml: 0.5,
+            verticalAlign: 'middle',
+            cursor: 'pointer',
+            color: row.isMuted ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.4)',
+            visibility: row.isMuted ? 'visible' : 'hidden',
+            'tr:hover &': { visibility: 'visible' },
+          }}
+        />
       </TableCell>
       <TableCell
         align="right"
-        sx={{ fontVariantNumeric: 'tabular-nums', color: flashColorA, transition: 'color 0.1s ease-out' }}
+        sx={{ fontVariantNumeric: 'tabular-nums', color: flashColorA, transition: 'color 0.1s ease-out', opacity: mutedOpacity }}
         onClick={() => row.isPinned && onToggleExpand(row.ticker)}
       >
         {formatPrice(row.priceA, quoteCurrencyA)}
       </TableCell>
       <TableCell
         align="right"
-        sx={{ fontVariantNumeric: 'tabular-nums', color: flashColorB, transition: 'color 0.1s ease-out' }}
+        sx={{ fontVariantNumeric: 'tabular-nums', color: flashColorB, transition: 'color 0.1s ease-out', opacity: mutedOpacity }}
         onClick={() => row.isPinned && onToggleExpand(row.ticker)}
       >
         {formatPrice(row.priceB, quoteCurrencyB)}
       </TableCell>
       <TableCell
         align="right"
-        sx={{ fontVariantNumeric: 'tabular-nums' }}
+        sx={{ fontVariantNumeric: 'tabular-nums', opacity: mutedOpacity }}
         onClick={() => row.isPinned && onToggleExpand(row.ticker)}
       >
         <span style={{ backgroundColor: premiumBg, padding: '1px 4px', borderRadius: 2 }}>
@@ -129,6 +145,7 @@ function areEqual(prev: MainRowProps, next: MainRowProps) {
     prev.quoteCurrencyA === next.quoteCurrencyA &&
     prev.quoteCurrencyB === next.quoteCurrencyB &&
     prev.isArbitrageable === next.isArbitrageable &&
+    prev.row.isMuted === next.row.isMuted &&
     // Compare formatted strings: tiny cross-rate fluctuations that don't
     // change the displayed value (±0.01%) skip re-render entirely.
     formatPremium(prev.premium) === formatPremium(next.premium)

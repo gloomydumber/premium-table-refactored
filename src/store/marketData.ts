@@ -83,6 +83,7 @@ function upsertRow(ticker: string, prev: RowMap): RowMap {
     priceB,
     walletStatus: existing?.walletStatus ?? getWalletStatusForTicker(ticker),
     isPinned: existing?.isPinned ?? false,
+    isMuted: existing?.isMuted ?? false,
   };
   return { ...prev, [ticker]: nextRow };
 }

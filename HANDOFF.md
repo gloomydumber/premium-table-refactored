@@ -8,6 +8,25 @@ Last updated: 2026-02-12
 
 ## Completed This Session (2026-02-12)
 
+### 0. Mute Feature — Hover-Reveal Down-Arrow to Sort Rows to Bottom
+
+**Purpose:** Some rows have high premiums but are meaningless (delisting, abnormal market conditions). Users can now mute rows to push them to the bottom of the table.
+
+**Interaction:**
+- Normal row on hover: small down-arrow icon appears after ticker name
+- Click the down-arrow: row becomes muted (dimmed + sorted to bottom)
+- Muted row: down-arrow always visible, row text/prices dimmed (opacity 0.3). Click again to unmute.
+- Pin and mute are mutually exclusive: pinning a muted row unmutes it; muting a pinned row unpins + closes detail.
+
+**Sort priority (updated):** expanded pinned → pinned → normal (|premium| desc) → muted (|premium| desc)
+
+**Files changed:**
+- `src/types/market.ts` — Added `isMuted: boolean` to `MarketRow`
+- `src/store/marketAtoms.ts` — Added `mutedAtom` (Set<string>), updated `_rawSortedAtom` comparator to sort muted below normal
+- `src/store/marketData.ts` — `upsertRow` preserves `isMuted` from existing row
+- `src/components/ArbitrageTable/ArbitrageTable.tsx` — Added `mutedAtom` state + `mutedRef`, `handleToggleMute` callback with pin/mute mutual exclusion, updated `handleTogglePin` to unmute, passed `onToggleMute` through `MainRowByTicker`
+- `src/components/ArbitrageTable/Row/MainRow.tsx` — Added `ArrowDownwardIcon` with `tr:hover &` visibility, dimmed styling when muted, updated `areEqual` memo check
+
 ### 1. USDC Cross-Rate Subscription Fix
 
 **Problem:** Upbit's `getSubscribeMessage` hardcoded `KRW-USDT` as the cross-rate ticker. When switching to the USDC tab, the system expected `KRW-USDC` messages but never subscribed to them, so `crossRateAtom` stayed `0` and all premiums showed `0.00%`.
@@ -116,6 +135,8 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 9. **Incoming WS messages are filtered against `commonTickers`.** `tickerSetRef` in `useExchangeWebSocket` prevents stale/orphan tickers from leaking into the row map during tab switches.
 
 10. **`handleToggleExpand` must use `pinnedRef`, not `pinned` directly.** `MemoMainRow`'s `areEqual` skips callback comparison, so a closure capturing `pinned` goes stale until the next price-driven re-render. The ref ensures the guard always sees the latest pinned state.
+
+11. **Pin and mute are mutually exclusive.** `handleTogglePin` unmutes; `handleToggleMute` unpins + closes detail. Both `mutedAtom` and `isMuted` on `MarketRow` must stay in sync (same pattern as `pinnedAtom` / `isPinned`). `handleToggleMute` uses `pinnedRef` (not `pinned` closure) for the same stale-closure reason as `handleToggleExpand`.
 
 ---
 
