@@ -10,7 +10,7 @@ export interface PremiumTableProps {
   theme?: Theme;
 }
 
-export function PremiumTable({ height = '100%', theme }: PremiumTableProps) {
+export function PremiumTable({ height = '100vh', theme }: PremiumTableProps) {
   return (
     <Provider>
       <ThemeProvider theme={theme ?? defaultTheme}>

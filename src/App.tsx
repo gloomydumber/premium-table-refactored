@@ -1,7 +1,7 @@
 import { PremiumTable } from './components/PremiumTable';
 
 function App() {
-  return <PremiumTable height="100vh" />;
+  return <PremiumTable />;
 }
 
 export default App;

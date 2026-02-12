@@ -8,6 +8,27 @@ Last updated: 2026-02-12
 
 ## Completed This Session (2026-02-12)
 
+### MUI v6 → v7 Upgrade (0.1.4)
+
+**Change:** Upgraded MUI devDependencies from v6.4.1 to v7.0.0+. Widened peerDependencies to accept both `^6.0.0 || ^7.0.0` for backward compatibility.
+
+**Motivation:** `@mui/icons-material@latest` resolves to v7 and requires `@mui/material@^7`. Consumers on v7 were getting peer dep conflicts. The library uses no deprecated v6 APIs (no `Grid`, no `size="normal"`, no deep imports), so the upgrade is zero-breakage.
+
+**Files changed:**
+- `package.json` — version `0.1.3` → `0.1.4`, devDeps MUI `^6.4.1` → `^7.0.0`, peerDeps MUI `^6.0.0` → `^6.0.0 || ^7.0.0`
+
+**Verified:** `npm run build`, `npm run build:lib`, `npm run lint` all pass. Test project (`../newTestProject`) updated to MUI v7.3.7 and builds cleanly.
+
+### PremiumTable `height` default: `'100%'` → `'100vh'`
+
+**Change:** Changed the default value of the optional `height` prop from `'100%'` to `'100vh'`.
+
+**Motivation:** With `height: '100%'`, if the consumer's parent chain has no explicit height (e.g., bare `<body>`), the table collapses to zero height and is invisible. `'100vh'` fills the viewport out of the box without requiring parent height setup. Consumers embedding in a sized container can still override with `height={500}` or `height="100%"`.
+
+**Files changed:**
+- `src/components/PremiumTable/PremiumTable.tsx` — default `'100%'` → `'100vh'`
+- `src/App.tsx` — removed now-redundant `height="100vh"` prop, relies on default
+
 ### 0. Library Build — Publish as GitHub Package
 
 **Change:** Converted project to dual-mode: standalone dev app (`npm run dev`) AND publishable npm library (`npm run build:lib`) for `@gloomydumber/premium-table` on GitHub Packages.
