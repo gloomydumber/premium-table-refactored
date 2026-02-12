@@ -18,7 +18,8 @@
       "WebFetch(domain:api.binance.com)",
       "WebFetch(domain:global-docs.upbit.com)",
       "WebFetch(domain:developers.binance.com)",
-      "WebFetch(domain:docs.upbit.com)"
+      "WebFetch(domain:docs.upbit.com)",
+      "Bash(git add:*)"
     ]
   }
 }
