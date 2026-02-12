@@ -1,5 +1,18 @@
 import type { ExchangeAdapter, NormalizedTick } from '../types';
 
+/** Tickers delisted from Binance but still returned by /ticker/price with stale prices */
+const DELISTED_TICKERS = new Set(['WAVES', 'AERGO', 'ELF', 'SNT']);
+
+/** Binance exchange name → canonical name (used by other exchanges like Upbit) */
+const TICKER_ALIASES: Record<string, string> = {
+  'BEAMX': 'BEAM',
+};
+
+/** Reverse: canonical → Binance exchange name (for WS subscriptions) */
+const REVERSE_ALIASES: Record<string, string> = Object.fromEntries(
+  Object.entries(TICKER_ALIASES).map(([k, v]) => [v, k]),
+);
+
 /** Module-level cache for REST-fetched tickers, keyed by quote currency */
 const tickerCache = new Map<string, string[]>();
 
@@ -18,7 +31,10 @@ export const binanceAdapter: ExchangeAdapter = {
 
   getSubscribeMessage(quoteCurrency: string, tickers: string[]): string {
     const suffix = quoteCurrency.toLowerCase();
-    const params = tickers.map(t => `${t.toLowerCase()}${suffix}@trade`);
+    const params = tickers.map(t => {
+      const exchangeTicker = REVERSE_ALIASES[t] ?? t;
+      return `${exchangeTicker.toLowerCase()}${suffix}@trade`;
+    });
     return JSON.stringify({ method: 'SUBSCRIBE', params, id: 1 });
   },
 
@@ -51,6 +67,8 @@ export const binanceAdapter: ExchangeAdapter = {
         return null;
       }
 
+      ticker = TICKER_ALIASES[ticker] ?? ticker;
+
       return { ticker, price, quoteCurrency };
     } catch {
       return null;
@@ -77,8 +95,10 @@ export const binanceAdapter: ExchangeAdapter = {
         // Skip delisted/halted pairs (price 0) and invalid prices
         if (!p || isNaN(p)) continue;
         const base = item.symbol.slice(0, -quoteCurrency.length);
-        tickers.push(base);
-        prices.set(base, p);
+        if (DELISTED_TICKERS.has(base)) continue;
+        const canonical = TICKER_ALIASES[base] ?? base;
+        tickers.push(canonical);
+        prices.set(canonical, p);
       }
       tickerCache.set(quoteCurrency, tickers);
       restPriceCache.set(quoteCurrency, prices);

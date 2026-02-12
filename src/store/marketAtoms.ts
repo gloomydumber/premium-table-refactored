@@ -43,10 +43,10 @@ export const mutedAtom = atom<Set<string>>(new Set<string>());
 export const sortFrozenAtom = atom(false);
 
 /** WebSocket readyState for exchange A (0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED) */
-export const wsReadyStateAAtom = atom<number>(0);
+export const wsReadyStateAAtom = atom<number>(3);
 
 /** WebSocket readyState for exchange B */
-export const wsReadyStateBAtom = atom<number>(0);
+export const wsReadyStateBAtom = atom<number>(3);
 
 /** Compute premium from prices and cross-rate */
 export function calcPremium(priceA: number, priceB: number, crossRate: number): number {

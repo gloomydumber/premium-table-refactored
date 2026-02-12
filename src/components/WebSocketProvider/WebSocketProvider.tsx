@@ -36,30 +36,31 @@ export function WebSocketProvider() {
   useEffect(() => {
     clearMarketData(setRowMap, setTickers, setCrossRate);
     setSortFrozen(false);
-    setWsReadyStateA(0);
-    setWsReadyStateB(0);
     const key = buildPrefsKey(marketKeyA, marketKeyB);
     const prefs = loadPrefs(key);
     setPinned(prefs.pinned);
     setOpenRows(prefs.openRows);
     setMuted(prefs.muted);
     initMarketData(marketKeyA, marketKeyB, setRowMap, setTickers, setCrossRate);
+  }, [marketKeyA, marketKeyB, setRowMap, setTickers, setCrossRate, setPinned, setOpenRows, setMuted, setSortFrozen]);
 
-    // Seed initial prices from REST cache (if available)
-    const p = pairRef.current;
+  // Seed initial prices from REST cache.
+  // Runs when `pair` updates (e.g., after initMarketPairAsync resolves with real tickers).
+  useEffect(() => {
+    if (pair.commonTickers.length === 0) return;
     for (const [adapter, mKey, quoteCurrency] of [
-      [p.adapterA, marketKeyA, p.marketA.quoteCurrency],
-      [p.adapterB, marketKeyB, p.marketB.quoteCurrency],
+      [pair.adapterA, marketKeyA, pair.marketA.quoteCurrency],
+      [pair.adapterB, marketKeyB, pair.marketB.quoteCurrency],
     ] as const) {
       const cached = adapter.getCachedPrices?.(quoteCurrency);
       if (cached) {
-        for (const ticker of p.commonTickers) {
+        for (const ticker of pair.commonTickers) {
           const price = cached.get(ticker);
           if (price !== undefined) updatePrice(mKey, ticker, price);
         }
       }
     }
-  }, [marketKeyA, marketKeyB, setRowMap, setTickers, setCrossRate, setPinned, setOpenRows, setMuted, setSortFrozen, setWsReadyStateA, setWsReadyStateB]);
+  }, [pair, marketKeyA, marketKeyB]);
 
   // Connect exchange A
   const readyStateA = useExchangeWebSocket(
