@@ -4,6 +4,7 @@ import { marketPairAtom, initMarketPairAsync } from '../../store/marketPairAtom'
 import { rowMapAtom, tickersAtom, crossRateAtom, pinnedAtom, openRowsAtom, mutedAtom, sortFrozenAtom } from '../../store/marketAtoms';
 import { useExchangeWebSocket } from '../../hooks/useExchangeWebSocket';
 import { initMarketData, clearMarketData } from '../../store/marketData';
+import { buildPrefsKey, loadPrefs } from '../../utils/prefsStorage';
 
 export function WebSocketProvider() {
   const pair = useAtomValue(marketPairAtom);
@@ -30,10 +31,12 @@ export function WebSocketProvider() {
   // Initialize/reinitialize market data when pair changes
   useEffect(() => {
     clearMarketData(setRowMap, setTickers, setCrossRate);
-    setPinned(new Set());
-    setOpenRows(new Set());
-    setMuted(new Set());
     setSortFrozen(false);
+    const key = buildPrefsKey(marketKeyA, marketKeyB);
+    const prefs = loadPrefs(key);
+    setPinned(prefs.pinned);
+    setOpenRows(prefs.openRows);
+    setMuted(prefs.muted);
     initMarketData(marketKeyA, marketKeyB, setRowMap, setTickers, setCrossRate);
   }, [marketKeyA, marketKeyB, setRowMap, setTickers, setCrossRate, setPinned, setOpenRows, setMuted, setSortFrozen]);
 

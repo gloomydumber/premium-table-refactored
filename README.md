@@ -136,6 +136,10 @@ Icon-based actions appear in the ticker cell:
 
 Pin and mute are mutually exclusive — pinning unmutes, muting unpins.
 
+### Preference Persistence
+
+Pin, mute, and expand state is saved to `localStorage` per market pair tab. Preferences survive page refreshes and tab switches — switching from USDT to USDC and back restores your USDT pins. A reset button (↻) in the PREMIUM header clears all preferences for the current tab.
+
 ### Sort Order
 
 Rows are sorted by priority:

@@ -1,13 +1,15 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAtomValue, useAtom, useSetAtom } from 'jotai';
 import { TableVirtuoso } from 'react-virtuoso';
-import { TableCell, TableRow } from '@mui/material';
+import { TableCell, TableRow, Box, IconButton } from '@mui/material';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { MarketPairSelector } from '../MarketPairSelector';
 import { sortedTickersAtom, openRowsAtom, pinnedAtom, mutedAtom, rowMapAtom, rowAtomFamily, crossRateAtom, calcPremium } from '../../store/marketAtoms';
 import { marketPairAtom } from '../../store/marketPairAtom';
 import { virtuosoTableComponents } from './VirtuosoTableComponents';
 import { MemoMainRow, MemoDetailRow } from './Row';
 import { SkeletonRow } from './SkeletonRow';
+import { buildPrefsKey, savePrefs } from '../../utils/prefsStorage';
 
 interface VirtualRow {
   type: 'main' | 'detail' | 'skeleton';
@@ -167,6 +169,61 @@ export function ArbitrageTable() {
     });
   }, [setPinned, setOpenRows, setRowMap, setMuted]);
 
+  // Derive market keys for localStorage scoping
+  const marketKeyA = `${pair.marketA.exchangeId}:${pair.marketA.quoteCurrency}`;
+  const marketKeyB = `${pair.marketB.exchangeId}:${pair.marketB.quoteCurrency}`;
+
+  // Persist prefs to localStorage whenever pin/mute/expand state changes.
+  // When market keys change (page refresh or tab switch), skip the first fire —
+  // atoms still hold stale values until WebSocketProvider restores from localStorage.
+  const prevKeysRef = useRef('');
+  useEffect(() => {
+    const currentKeys = `${marketKeyA}|${marketKeyB}`;
+    if (currentKeys !== prevKeysRef.current) {
+      prevKeysRef.current = currentKeys;
+      return;
+    }
+    const key = buildPrefsKey(marketKeyA, marketKeyB);
+    savePrefs(key, pinned, muted, openRows);
+  }, [pinned, muted, openRows, marketKeyA, marketKeyB]);
+
+  // Sync rowMap isPinned/isMuted flags to match restored prefs.
+  // Runs on every sortedTickers change so rows arriving in later batches get synced.
+  // Short-circuits via next===prev when all flags already match (no-op).
+  useEffect(() => {
+    if ((pinned.size === 0 && muted.size === 0) || sortedTickers.length === 0) return;
+    setRowMap((prev) => {
+      let next = prev;
+      for (const ticker of pinned) {
+        if (next[ticker] && !next[ticker].isPinned) {
+          next = { ...next, [ticker]: { ...next[ticker], isPinned: true } };
+        }
+      }
+      for (const ticker of muted) {
+        if (next[ticker] && !next[ticker].isMuted) {
+          next = { ...next, [ticker]: { ...next[ticker], isMuted: true } };
+        }
+      }
+      return next === prev ? prev : next;
+    });
+  }, [sortedTickers, pinned, muted, setRowMap]);
+
+  // Reset all prefs for current tab
+  const handleResetPrefs = useCallback(() => {
+    setPinned(new Set());
+    setOpenRows(new Set());
+    setMuted(new Set());
+    setRowMap((prev) => {
+      const next = { ...prev };
+      for (const key of Object.keys(next)) {
+        if (next[key].isPinned || next[key].isMuted) {
+          next[key] = { ...next[key], isPinned: false, isMuted: false };
+        }
+      }
+      return next;
+    });
+  }, [setPinned, setOpenRows, setMuted, setRowMap]);
+
   // Build flat virtual row list: skeleton rows when loading, else main + detail rows
   const virtualRows: VirtualRow[] = useMemo(() => {
     if (sortedTickers.length === 0) {
@@ -201,7 +258,18 @@ export function ArbitrageTable() {
           <TableCell align="right" sx={{ width: '28%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)' }}>
             {exchangeNameB.toUpperCase()} ({quoteCurrencyB})
           </TableCell>
-          <TableCell align="right" sx={{ width: '30%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)' }}>PREMIUM</TableCell>
+          <TableCell align="right" sx={{ width: '30%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+              PREMIUM
+              <IconButton
+                size="small"
+                onClick={handleResetPrefs}
+                sx={{ opacity: 0.5, '&:hover': { opacity: 1 }, p: '2px' }}
+              >
+                <RestartAltIcon sx={{ fontSize: 14, color: 'rgba(0, 255, 0, 0.6)' }} />
+              </IconButton>
+            </Box>
+          </TableCell>
         </TableRow>
       )}
       itemContent={(_, virtualRow) => {
