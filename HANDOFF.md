@@ -8,15 +8,15 @@ Last updated: 2026-02-12
 
 ## Completed This Session (2026-02-12)
 
-### Remove Fallback Tickers + Skeleton Loading UI (0.1.5)
+### Remove Fallback Tickers + Skeleton Loading UI (0.1.5 → 0.1.6)
 
-**Change:** Deleted all hardcoded fallback ticker arrays (`KRW_TICKERS_FALLBACK`, `USDT_TICKERS_FALLBACK`, `USDC_TICKERS_FALLBACK`) from exchange adapters. Added skeleton loading rows (30 shimmer rows) that display while REST APIs fetch tickers and WS prices arrive.
+**Change:** Deleted all hardcoded fallback ticker arrays (`KRW_TICKERS_FALLBACK`, `USDT_TICKERS_FALLBACK`, `USDC_TICKERS_FALLBACK`) from exchange adapters. Added skeleton loading rows (40 shimmer rows) that display while REST APIs fetch tickers and WS prices arrive.
 
 **Motivation:** Fallback arrays were ugly maintenance burdens that could drift out of sync with actual exchange listings. The table previously showed 0 rows (blank) before first WS price with no loading indication. Now it shows skeleton rows immediately, replaced by real data once prices stream in.
 
 **How it works:**
 1. `buildDefaultMarketPair()` → `getAvailableTickers()` returns `[]` → `commonTickers = []`
-2. `sortedTickersAtom = []` → ArbitrageTable renders 30 skeleton rows
+2. `sortedTickersAtom = []` → ArbitrageTable renders 40 skeleton rows
 3. REST APIs respond → `commonTickers` updated → WS subscribes with full list
 4. First prices arrive → skeleton replaced by real rows
 5. Subsequent tab switches use cached REST data → instant data, minimal/no skeleton
@@ -25,7 +25,7 @@ Last updated: 2026-02-12
 - `src/exchanges/adapters/upbit.ts` — Deleted `KRW_TICKERS_FALLBACK`, `getAvailableTickers` returns `cachedKrwTickers ?? []`, catch returns `[]`
 - `src/exchanges/adapters/binance.ts` — Deleted `USDT_TICKERS_FALLBACK` and `USDC_TICKERS_FALLBACK`, `getAvailableTickers` returns `tickerCache.get(quoteCurrency) ?? []`, catch returns `[]`
 - `src/store/marketPairAtom.ts` — `initMarketPairAsync` guard simplified from `dynamicTickers.length > defaultPair.commonTickers.length` to `dynamicTickers.length > 0`
-- `src/components/ArbitrageTable/ArbitrageTable.tsx` — Added `'skeleton'` to `VirtualRow` type, generates 30 skeleton rows when `sortedTickers` is empty, renders `<SkeletonRow />` for skeleton type
+- `src/components/ArbitrageTable/ArbitrageTable.tsx` — Added `'skeleton'` to `VirtualRow` type, generates 40 skeleton rows when `sortedTickers` is empty, renders `<SkeletonRow />` for skeleton type
 
 ### Sort Freeze Disabled During Skeleton Loading
 
