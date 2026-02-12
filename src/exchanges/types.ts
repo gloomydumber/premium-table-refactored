@@ -58,6 +58,12 @@ export interface ExchangeAdapter {
   fetchAvailableTickers?(quoteCurrency: string): Promise<string[]>;
 
   /**
+   * Return cached prices from the most recent REST fetch, if available.
+   * Used to seed initial row prices before WebSocket connects.
+   */
+  getCachedPrices?(quoteCurrency: string): Map<string, number>;
+
+  /**
    * Convert exchange-specific ticker symbol to a canonical base symbol.
    * e.g., Upbit "KRW-BTC" → "BTC", Binance "BTCUSDT" → "BTC"
    */

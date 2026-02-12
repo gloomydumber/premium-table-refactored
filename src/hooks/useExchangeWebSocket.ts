@@ -94,5 +94,6 @@ export function useExchangeWebSocket(
   const url = adapter.getWebSocketUrl(quoteCurrency, tickers);
   const hasSubscribe = !!adapter.getSubscribeMessage;
 
-  useWebSocketHandler(url, processMessage, hasSubscribe ? subscribe : undefined);
+  const { readyState } = useWebSocketHandler(url, processMessage, hasSubscribe ? subscribe : undefined);
+  return readyState;
 }

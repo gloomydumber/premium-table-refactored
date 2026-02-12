@@ -8,6 +8,71 @@ Last updated: 2026-02-12
 
 ## Completed This Session (2026-02-12)
 
+### react-grid-layout Fixed Container (usage example)
+
+**Change:** `App.tsx` now demonstrates embedding `<PremiumTable>` inside a react-grid-layout as a fixed, full-viewport grid item. The item is `static: true`, not draggable, not resizable — serving as a usage reference for the WTS consumer project.
+
+**Grid item fills viewport via CSS:** `.react-grid-item { height: 100% !important }` in `grid-overrides.css` bypasses RGL's row-height math so the item always fills the container regardless of viewport size.
+
+**`setUpdatesPaused` in `marketData.ts`:** Module-level pause flag that prevents RAF flush and buffers cross-rate updates. Exported from `src/lib.ts` for consumer use. Consumers wrapping `<PremiumTable>` in their own react-grid-layout can call `setUpdatesPaused(true/false)` during resize.
+
+**Files changed:**
+- `src/App.tsx` — Fixed grid item (`static: true`, `isResizable={false}`), full-viewport height via CSS
+- `src/grid-overrides.css` — Replaced resize handle styles with `.react-grid-item { height: 100% !important }`
+- `src/store/marketData.ts` — `setUpdatesPaused` API (pause flag + pending cross-rate buffer)
+- `src/lib.ts` — Exports `setUpdatesPaused`
+
+### Post-0.1.9 Fixes
+
+**Fix 1 — No scroll in App.tsx grid:** `height: '100vh'` + `overflow: 'hidden'` on html/body/#root + `autoSize={false}`. Grid fills exactly one viewport height without generating scrollbars.
+
+**Fix 2 — Filter delisted Binance tickers:** Added `price > 0` filter in `fetchAvailableTickers`. The `/ticker/price` endpoint returns ALL symbols including delisted/halted pairs (which have `price: "0.00000000"`). The old `exchangeInfo` had `status: 'TRADING'` filter. Now `!p || isNaN(p)` skips zero-price and invalid entries.
+
+**Fix 3 — Tooltips on WS status dots:** Each dot is wrapped in a themed `<Tooltip>` showing `"{ExchangeName} WebSocket: {Status}"` (e.g., "Upbit WebSocket: Connected"). Tooltip styling reuses the same theme as the reset button tooltip (black bg, lime text, green border). Extracted `wsTooltipSlotProps` as a static constant to avoid re-creating on render. Added `cursor: 'default'` to the dot for tooltip hover UX.
+
+**Files changed:**
+- `src/App.tsx` — `autoSize={false}`, `height: '100vh'`, fixed static grid item
+- `src/grid-overrides.css` — `overflow: hidden` on html/body/#root, `.react-grid-item { height: 100% !important }`
+- `src/exchanges/adapters/binance.ts` — `price > 0` filter in `fetchAvailableTickers` loop
+- `src/components/ArbitrageTable/ArbitrageTable.tsx` — `wsStatusDot` now accepts `exchangeName`, wraps dot in themed `<Tooltip>`, extracted `wsTooltipSlotProps` + `WS_STATUS_LABELS`, column widths 16/30/30/24
+
+### Three Improvements (0.1.9)
+
+#### 1. Binance REST endpoint switch to `/ticker/price` + seed initial prices
+
+**Problem:** `fetchAvailableTickers` fetched ~1.5MB `exchangeInfo`. The lighter `/api/v3/ticker/price` returns `{ symbol, price }[]` (~50KB) and provides initial prices to seed rows before WS connects.
+
+**Changes:**
+- `src/exchanges/types.ts` — Added optional `getCachedPrices?(quoteCurrency: string): Map<string, number>` to `ExchangeAdapter` interface
+- `src/exchanges/adapters/binance.ts` — Switched from `exchangeInfo` to `ticker/price` endpoint. Added `restPriceCache` (module-level Map). `fetchAvailableTickers` now extracts tickers AND prices from the same response. Added `getCachedPrices()` method.
+- `src/components/WebSocketProvider/WebSocketProvider.tsx` — After `initMarketData()`, seeds cached prices from both adapters via `updatePrice()`. Uses `pairRef` to avoid lint warning about `pair` in effect deps.
+
+**Result:** Binance priceB column populates instantly from REST data. WS trade events overwrite REST prices as they arrive.
+
+#### 2. WebSocket connection status dots in table header
+
+**Change:** Added colored dots (6px circles) next to each exchange name in the table header showing WS connection health.
+
+**Colors:** Green (`#00ff00`) = OPEN, Yellow (`#ffff00`) = CONNECTING, Red (`#ff0000`) = CLOSING/CLOSED.
+
+**Implementation:**
+- `src/store/marketAtoms.ts` — Added `wsReadyStateAAtom` and `wsReadyStateBAtom` (number atoms, default 0)
+- `src/hooks/useWebSocketHandler.ts` — Now returns `readyState` alongside `sendMessage`
+- `src/hooks/useExchangeWebSocket.ts` — Now returns `readyState` from `useWebSocketHandler`
+- `src/components/WebSocketProvider/WebSocketProvider.tsx` — Captures `readyState` from both `useExchangeWebSocket` calls, syncs to atoms via `useEffect`. Resets both to `0` on tab switch.
+- `src/components/ArbitrageTable/ArbitrageTable.tsx` — Reads `wsReadyStateAAtom`/`wsReadyStateBAtom`, renders `wsStatusDot()` helper after each exchange name in header cells.
+
+#### 3. react-grid-layout fixed container (dev-only usage example)
+
+**Change:** Wrapped `PremiumTable` in a react-grid-layout in `App.tsx` as a fixed, full-viewport grid item. Dev-only — the library component does NOT depend on it. Consumers wrap `<PremiumTable>` in their own layout.
+
+**Implementation:**
+- `package.json` — Added `react-grid-layout` as devDependency (NOT peer/regular dep)
+- `src/App.tsx` — Imports `WidthProvider` and `Responsive` from `react-grid-layout/legacy`. Single static grid item (`static: true`, `isDraggable={false}`, `isResizable={false}`).
+- `src/grid-overrides.css` (new) — Viewport height override: `.react-grid-item { height: 100% !important }` bypasses RGL row math.
+
+**Note:** react-grid-layout v2 moved `WidthProvider` and `Responsive` to `react-grid-layout/legacy` subpath. The main entry uses hooks-based API (`useContainerWidth`, `useGridLayout`). `@types/react-grid-layout` was removed (conflicts with native types).
+
 ### Tooltip on localStorage Reset Button (0.1.8)
 
 **Change:** Added a themed MUI `<Tooltip>` to the `RestartAltIcon` reset button in the PREMIUM header cell. The tooltip explains that it resets pin, mute, and expand preferences for the current tab only (other tabs are not affected).
@@ -303,16 +368,25 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 
 15. **User preferences persist in localStorage per tab.** Key format: `premium-table:prefs:${marketKeyA}|${marketKeyB}`. `WebSocketProvider` loads prefs on tab switch/refresh; `ArbitrageTable` saves via effect with `prevKeysRef` guard (skips saving when market keys just changed, preventing stale atom values from overwriting saved prefs). A continuous sync effect sets `isPinned`/`isMuted` flags on `rowMapAtom` as rows arrive in incremental WS batches.
 
-16. **Sort freeze is disabled during skeleton loading.** `TableBody` in `VirtuosoTableComponents.tsx` checks `tickersAtom.length > 0` before setting `sortFrozenAtom` to `true`. Without this, hovering skeleton rows would freeze an empty sort snapshot and block real data from appearing correctly.
+16. **Binance REST uses `/ticker/price`, not `exchangeInfo`.** The lighter endpoint returns `{symbol, price}[]` instead of full exchange metadata (~1.5MB). Prices are cached in `restPriceCache` and seeded into rows before WS connects via `getCachedPrices()`. Do not switch back to `exchangeInfo`.
+
+17. **WebSocket readyState is exposed via atoms.** `wsReadyStateAAtom`/`wsReadyStateBAtom` are set from `useExchangeWebSocket` return values, synced via `useEffect` in `WebSocketProvider`. Reset to `0` on tab switch. Read in `ArbitrageTable` for header status dots.
+
+18. **react-grid-layout is dev-only.** It's in `devDependencies`, NOT `peerDependencies`. The library build (`build:lib`) does not include it. Only `App.tsx` imports it. Do not add it to `src/lib.ts` exports or vite externals.
+
+19. **`setUpdatesPaused` exported for consumer resize integration.** Consumers embedding `<PremiumTable>` in a resizable react-grid-layout can call `setUpdatesPaused(true)` on resize start and `setUpdatesPaused(false)` on resize stop to freeze RAF flushes and buffer cross-rate updates during drag. The dev `App.tsx` uses a fixed (non-resizable) grid item as a usage reference.
+
+20. **Sort freeze is disabled during skeleton loading.** `TableBody` in `VirtuosoTableComponents.tsx` checks `tickersAtom.length > 0` before setting `sortFrozenAtom` to `true`. Without this, hovering skeleton rows would freeze an empty sort snapshot and block real data from appearing correctly.
 
 ---
 
 ## Known Issues / Future Work
 
 - **Upbit REST proxy** (`/api/upbit` in vite.config.ts) only works in dev. Production deployment needs a real proxy or backend endpoint.
-- **Wallet status** is still randomly generated per ticker (placeholder). Needs actual server API.
+- **Wallet status** is still randomly generated per ticker (placeholder). Needs actual server API with backend, because some exchanges require POST requests with API key and secret.
 - **No test framework** configured. Verification is manual.
-- **Sort order instability (partially mitigated):** Sort freezes on tbody hover, but rows still jump when the mouse is outside the table. Consider debouncing sort updates or adding a minimum delta threshold for the non-hover case.
-- **Binance `exchangeInfo` payload** is large (~1.5MB). Consider caching it or using a lighter endpoint if available.
-- **`useWebSocketHandler` re-subscribe:** When tickers expand (REST fetch completes), ALL tickers are re-subscribed including already-subscribed ones. Binance handles duplicates gracefully, but an incremental subscribe (new tickers only) would be cleaner.
+- **Sort order instability (partially mitigated):** Sort freezes on tbody hover, but rows still jump when the mouse is outside the table. User decided this is acceptable — without hover, there's no click target to protect.
+- **`useWebSocketHandler` re-subscribe:** Sends ALL tickers on re-subscribe. Non-issue in practice since skeleton loading (0.1.6+) means the full ticker list is only sent once per tab. Binance handles duplicates gracefully.
 - **Flash still needs live verification.** The cross-rate decoupling and Virtuoso recycling guard are architecturally correct but should be visually confirmed with `npm run dev` — check that rows flash independently, not all at once.
+- **Export/share:** Export current table snapshot (pinned rows, premiums) as CSV or shareable link. Considerable for future.
+- **Alerts/notifications:** Notify when a ticker's premium crosses a user-defined threshold. Considerable for future.

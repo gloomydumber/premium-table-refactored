@@ -9,3 +9,6 @@ export type { ExchangeAdapter, NormalizedTick } from './exchanges/types';
 // Exchange adapters (for future custom exchanges)
 export { upbitAdapter } from './exchanges/adapters/upbit';
 export { binanceAdapter } from './exchanges/adapters/binance';
+
+// Utilities (for host app integration)
+export { setUpdatesPaused } from './store/marketData';

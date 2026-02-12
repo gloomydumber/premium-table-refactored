@@ -58,6 +58,32 @@ function getWalletStatusForTicker(ticker: string): WalletStatus[] {
 }
 
 // ---------------------------------------------------------------------------
+// Resize pause — freezes all React state updates while grid is being resized
+// ---------------------------------------------------------------------------
+
+let paused = false;
+let pendingCrossRate: number | null = null;
+
+/**
+ * Pause/resume React state flushes.
+ * While paused, WS messages still write to module-level Maps (O(1), no React).
+ * On resume, one catch-up flush applies all accumulated changes.
+ */
+export function setUpdatesPaused(value: boolean) {
+  paused = value;
+  if (!value) {
+    // Resume: flush buffered cross-rate + pending row updates
+    if (pendingCrossRate !== null) {
+      if (lastSetCrossRate) lastSetCrossRate(pendingCrossRate);
+      pendingCrossRate = null;
+    }
+    if (pendingTickers.size > 0) {
+      scheduleFlush();
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // RAF batch flush
 // ---------------------------------------------------------------------------
 
@@ -117,7 +143,7 @@ function flush() {
 }
 
 function scheduleFlush() {
-  if (flushScheduled) return;
+  if (flushScheduled || paused) return;
   flushScheduled = true;
   requestAnimationFrame(flush);
 }
@@ -194,6 +220,10 @@ export function updatePrice(
  * Premium is computed at the render layer from crossRateAtom + row prices.
  */
 export function updateCrossRate(rate: number) {
+  if (paused) {
+    pendingCrossRate = rate;
+    return;
+  }
   if (lastSetCrossRate) {
     lastSetCrossRate(rate);
   }

@@ -4,7 +4,7 @@ import { TableVirtuoso } from 'react-virtuoso';
 import { TableCell, TableRow, Box, IconButton, Tooltip } from '@mui/material';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { MarketPairSelector } from '../MarketPairSelector';
-import { sortedTickersAtom, openRowsAtom, pinnedAtom, mutedAtom, rowMapAtom, rowAtomFamily, crossRateAtom, calcPremium } from '../../store/marketAtoms';
+import { sortedTickersAtom, openRowsAtom, pinnedAtom, mutedAtom, rowMapAtom, rowAtomFamily, crossRateAtom, calcPremium, wsReadyStateAAtom, wsReadyStateBAtom } from '../../store/marketAtoms';
 import { marketPairAtom } from '../../store/marketPairAtom';
 import { virtuosoTableComponents } from './VirtuosoTableComponents';
 import { MemoMainRow, MemoDetailRow } from './Row';
@@ -90,6 +90,58 @@ function checkArbitrageable(premium: number, walletStatus: { marketA: { deposit:
   });
 }
 
+const WS_STATUS_LABELS: Record<number, string> = {
+  0: 'Connecting',
+  1: 'Connected',
+  2: 'Closing',
+  3: 'Closed',
+};
+
+const wsTooltipSlotProps = {
+  tooltip: {
+    sx: {
+      bgcolor: 'rgba(0, 0, 0, 0.92)',
+      color: 'lime',
+      border: '1px solid rgba(0, 255, 0, 0.3)',
+      fontSize: '0.75rem',
+      fontFamily: '"JetBrains Mono", monospace',
+    },
+  },
+  arrow: {
+    sx: {
+      color: 'rgba(0, 0, 0, 0.92)',
+      '&::before': { border: '1px solid rgba(0, 255, 0, 0.3)' },
+    },
+  },
+} as const;
+
+function wsStatusDot(readyState: number, exchangeName: string) {
+  const color = readyState === 1 ? '#00ff00' : readyState === 0 ? '#ffff00' : '#ff0000';
+  const label = WS_STATUS_LABELS[readyState] ?? 'Unknown';
+  return (
+    <Tooltip
+      title={`${exchangeName} WebSocket: ${label}`}
+      arrow
+      placement="bottom"
+      slotProps={wsTooltipSlotProps}
+    >
+      <Box
+        component="span"
+        sx={{
+          display: 'inline-block',
+          width: 6,
+          height: 6,
+          borderRadius: '50%',
+          backgroundColor: color,
+          ml: 0.5,
+          verticalAlign: 'middle',
+          cursor: 'default',
+        }}
+      />
+    </Tooltip>
+  );
+}
+
 export function ArbitrageTable() {
   const sortedTickers = useAtomValue(sortedTickersAtom);
   const [openRows, setOpenRows] = useAtom(openRowsAtom);
@@ -101,6 +153,8 @@ export function ArbitrageTable() {
   mutedRef.current = muted;
   const setRowMap = useSetAtom(rowMapAtom);
   const pair = useAtomValue(marketPairAtom);
+  const readyStateA = useAtomValue(wsReadyStateAAtom);
+  const readyStateB = useAtomValue(wsReadyStateBAtom);
 
   const exchangeNameA = pair.adapterA.name;
   const exchangeNameB = pair.adapterB.name;
@@ -249,16 +303,16 @@ export function ArbitrageTable() {
       components={virtuosoTableComponents}
       fixedHeaderContent={() => (
         <TableRow sx={{ backgroundColor: '#0d0d0d' }}>
-          <TableCell sx={{ width: '14%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)', verticalAlign: 'bottom', p: '0 8px 4px' }}>
+          <TableCell sx={{ width: '16%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)', verticalAlign: 'bottom', p: '0 8px 4px' }}>
             <MarketPairSelector />
           </TableCell>
-          <TableCell align="right" sx={{ width: '28%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)' }}>
-            {exchangeNameA.toUpperCase()} ({quoteCurrencyA})
-          </TableCell>
-          <TableCell align="right" sx={{ width: '28%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)' }}>
-            {exchangeNameB.toUpperCase()} ({quoteCurrencyB})
+          <TableCell align="right" sx={{ width: '30%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)' }}>
+            {exchangeNameA.toUpperCase()} ({quoteCurrencyA}){wsStatusDot(readyStateA, exchangeNameA)}
           </TableCell>
           <TableCell align="right" sx={{ width: '30%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)' }}>
+            {exchangeNameB.toUpperCase()} ({quoteCurrencyB}){wsStatusDot(readyStateB, exchangeNameB)}
+          </TableCell>
+          <TableCell align="right" sx={{ width: '24%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
               PREMIUM
               <Tooltip

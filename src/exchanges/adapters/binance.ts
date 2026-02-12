@@ -3,6 +3,9 @@ import type { ExchangeAdapter, NormalizedTick } from '../types';
 /** Module-level cache for REST-fetched tickers, keyed by quote currency */
 const tickerCache = new Map<string, string[]>();
 
+/** Module-level cache for REST-fetched prices, keyed by quote currency → (base → price) */
+const restPriceCache = new Map<string, Map<string, number>>();
+
 export const binanceAdapter: ExchangeAdapter = {
   id: 'binance',
   name: 'Binance',
@@ -63,20 +66,31 @@ export const binanceAdapter: ExchangeAdapter = {
     if (cached) return cached;
 
     try {
-      const res = await fetch('https://api.binance.com/api/v3/exchangeInfo');
+      const res = await fetch('https://api.binance.com/api/v3/ticker/price');
       if (!res.ok) throw new Error(`Binance REST ${res.status}`);
-      const data = (await res.json()) as {
-        symbols: { baseAsset: string; quoteAsset: string; status: string }[];
-      };
-      const tickers = data.symbols
-        .filter(s => s.quoteAsset === quoteCurrency && s.status === 'TRADING')
-        .map(s => s.baseAsset);
+      const data = (await res.json()) as { symbol: string; price: string }[];
+      const tickers: string[] = [];
+      const prices = new Map<string, number>();
+      for (const item of data) {
+        if (!item.symbol.endsWith(quoteCurrency)) continue;
+        const p = Number(item.price);
+        // Skip delisted/halted pairs (price 0) and invalid prices
+        if (!p || isNaN(p)) continue;
+        const base = item.symbol.slice(0, -quoteCurrency.length);
+        tickers.push(base);
+        prices.set(base, p);
+      }
       tickerCache.set(quoteCurrency, tickers);
+      restPriceCache.set(quoteCurrency, prices);
       return tickers;
     } catch (e) {
       console.warn('Binance REST fetch failed:', e);
       return [];
     }
+  },
+
+  getCachedPrices(quoteCurrency: string): Map<string, number> {
+    return restPriceCache.get(quoteCurrency) ?? new Map();
   },
 
   normalizeSymbol(rawSymbol: string, quoteCurrency: string): string {

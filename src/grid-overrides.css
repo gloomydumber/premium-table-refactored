@@ -1,0 +1,12 @@
+/* Prevent page-level scroll */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Force grid item to fill container height (bypasses RGL row math) */
+.react-grid-item {
+  height: 100% !important;
+}

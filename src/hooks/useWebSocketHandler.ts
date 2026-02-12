@@ -42,5 +42,5 @@ export function useWebSocketHandler(
     }
   }, [lastMessage]);
 
-  return { sendMessage };
+  return { sendMessage, readyState };
 }

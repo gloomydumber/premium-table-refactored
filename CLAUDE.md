@@ -21,7 +21,7 @@ No test framework is configured. Verification is manual: open dev server, confir
 
 Refactored version of `../teamlvr-wireframe-premium-table`. Multi-exchange crypto arbitrage premium table showing live price differentials between any two exchange markets (not just Upbit-Binance).
 
-**Stack:** React 18 + TypeScript (strict) + Vite 6 (SWC) + MUI 6 (dark theme, Emotion) + Jotai + react-virtuoso + react-use-websocket
+**Stack:** React 18 + TypeScript (strict) + Vite 6 (SWC) + MUI 7 (dark theme, Emotion) + Jotai + react-virtuoso + react-use-websocket
 
 **Key difference from original:** The original hardcodes Upbit KRW vs Binance USDT with 23 ticker pairs. This refactor introduces an `ExchangeAdapter` abstraction so any CEX pair can be compared, and tickers are dynamically computed as the intersection of both markets.
 
@@ -76,7 +76,8 @@ Adding a new exchange = implement one adapter file + register it. No new hooks o
 - `crossRateAtom` — cross-rate between quote currencies (decoupled from rowMapAtom to prevent all-rows re-render)
 - `sortedTickersAtom` — **derived** read-only atom with referential stability (selectAtom + array equality)
 - `rowAtomFamily(ticker)` — per-row atoms so only changed rows re-render
-- `pinnedAtom`, `openRowsAtom` — pin/expand state in Jotai (not local useState)
+- `pinnedAtom`, `openRowsAtom`, `mutedAtom` — pin/expand/mute state in Jotai (not local useState)
+- `wsReadyStateAAtom`, `wsReadyStateBAtom` — WebSocket connection readyState for each exchange
 - `marketPairAtom` — active MarketPair config (adapters, common tickers, cross-rate config)
 
 **Critical rule:** `ArbitrageTable` reads `sortedTickersAtom` (string[]) only, never `rowMapAtom` directly.
@@ -99,7 +100,7 @@ Cross-rate converts between quote currencies. Fallback hierarchy:
 
 ### Row Sorting
 
-Priority: expanded pinned → pinned → |premium| descending → insertion id ascending.
+Priority: expanded pinned → pinned → normal (|premium| descending) → muted (|premium| descending) → insertion id ascending.
 
 ### UI Structure
 

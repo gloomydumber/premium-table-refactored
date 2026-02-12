@@ -42,6 +42,12 @@ export const mutedAtom = atom<Set<string>>(new Set<string>());
 /** When true, sortedTickersAtom returns a frozen snapshot (no re-sorting) */
 export const sortFrozenAtom = atom(false);
 
+/** WebSocket readyState for exchange A (0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED) */
+export const wsReadyStateAAtom = atom<number>(0);
+
+/** WebSocket readyState for exchange B */
+export const wsReadyStateBAtom = atom<number>(0);
+
 /** Compute premium from prices and cross-rate */
 export function calcPremium(priceA: number, priceB: number, crossRate: number): number {
   if (priceA <= 0 || priceB <= 0 || crossRate <= 0) return 0;
