@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useAtomValue, useAtom, useSetAtom } from 'jotai';
 import { TableVirtuoso } from 'react-virtuoso';
 import { TableCell, TableRow } from '@mui/material';
@@ -84,6 +84,8 @@ export function ArbitrageTable() {
   const sortedTickers = useAtomValue(sortedTickersAtom);
   const [openRows, setOpenRows] = useAtom(openRowsAtom);
   const [pinned, setPinned] = useAtom(pinnedAtom);
+  const pinnedRef = useRef(pinned);
+  pinnedRef.current = pinned;
   const setRowMap = useSetAtom(rowMapAtom);
   const pair = useAtomValue(marketPairAtom);
 
@@ -112,14 +114,14 @@ export function ArbitrageTable() {
   }, [setPinned, setOpenRows, setRowMap]);
 
   const handleToggleExpand = useCallback((ticker: string) => {
-    if (!pinned.has(ticker)) return;
+    if (!pinnedRef.current.has(ticker)) return;
     setOpenRows((prev) => {
       const next = new Set(prev);
       if (next.has(ticker)) next.delete(ticker);
       else next.add(ticker);
       return next;
     });
-  }, [pinned, setOpenRows]);
+  }, [setOpenRows]);
 
   // Build flat virtual row list: main rows + detail rows for expanded items
   const virtualRows: VirtualRow[] = useMemo(() => {
