@@ -21,11 +21,10 @@ export const upbitAdapter: ExchangeAdapter = {
     return 'wss://api.upbit.com/websocket/v1';
   },
 
-  getSubscribeMessage(quoteCurrency: string, tickers: string[]): string {
+  getSubscribeMessage(quoteCurrency: string, tickers: string[], crossRateTicker?: string): string {
     const codes = tickers.map(t => `${quoteCurrency}-${t}`);
-    // Include cross-rate ticker for KRW↔USDT conversion
-    if (quoteCurrency === 'KRW' && !codes.includes('KRW-USDT')) {
-      codes.push('KRW-USDT');
+    if (crossRateTicker && !codes.includes(crossRateTicker)) {
+      codes.push(crossRateTicker);
     }
     return JSON.stringify([
       { ticket: 'premium-table' },

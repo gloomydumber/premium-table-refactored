@@ -38,7 +38,7 @@ export interface ExchangeAdapter {
    * Build the subscription message to send after WS connects (if needed).
    * Upbit requires this; Binance encodes subscriptions in the URL.
    */
-  getSubscribeMessage?(quoteCurrency: string, tickers: string[]): string;
+  getSubscribeMessage?(quoteCurrency: string, tickers: string[], crossRateTicker?: string): string;
 
   /**
    * Parse a raw WS message into a normalized price update, or null if irrelevant.

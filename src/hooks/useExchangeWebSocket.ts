@@ -23,6 +23,9 @@ export function useExchangeWebSocket(
   const adapterRef = useRef(adapter);
   adapterRef.current = adapter;
 
+  const tickerSetRef = useRef(new Set(tickers));
+  tickerSetRef.current = new Set(tickers);
+
   const processMessage = useCallback((data: unknown) => {
     const currentAdapter = adapterRef.current;
     const config = crossRateConfigRef.current;
@@ -45,6 +48,9 @@ export function useExchangeWebSocket(
                 return;
               }
 
+              // Filter out tickers not in the current common set
+              if (!tickerSetRef.current.has(tick.ticker)) return;
+
               updatePrice(marketKey, tick.ticker, tick.price);
 
               // BTC-derived cross-rate: recalc after BTC update
@@ -65,6 +71,9 @@ export function useExchangeWebSocket(
     const tick = currentAdapter.parseMessage(data);
     if (!tick) return;
 
+    // Filter out tickers not in the current common set
+    if (!tickerSetRef.current.has(tick.ticker)) return;
+
     updatePrice(marketKey, tick.ticker, tick.price);
 
     if (config.type === 'btc-derived' && tick.ticker === 'BTC') {
@@ -73,7 +82,12 @@ export function useExchangeWebSocket(
   }, [marketKey]);
 
   const subscribe = useCallback((sendMessage: (msg: string) => void) => {
-    const msg = adapterRef.current.getSubscribeMessage?.(quoteCurrency, tickers);
+    const config = crossRateConfigRef.current;
+    const crossRateTicker =
+      config.type === 'ticker' && config.exchangeId === adapterRef.current.id
+        ? config.code
+        : undefined;
+    const msg = adapterRef.current.getSubscribeMessage?.(quoteCurrency, tickers, crossRateTicker);
     if (msg) sendMessage(msg);
   }, [quoteCurrency, tickers]);
 

@@ -2,11 +2,36 @@
 
 Session handoff notes. Read this at the start of every session. Update it before closing.
 
-Last updated: 2026-02-11
+Last updated: 2026-02-12
 
 ---
 
-## Completed This Session (2026-02-11)
+## Completed This Session (2026-02-12)
+
+### 1. USDC Cross-Rate Subscription Fix
+
+**Problem:** Upbit's `getSubscribeMessage` hardcoded `KRW-USDT` as the cross-rate ticker. When switching to the USDC tab, the system expected `KRW-USDC` messages but never subscribed to them, so `crossRateAtom` stayed `0` and all premiums showed `0.00%`.
+
+**Fix:** Made the cross-rate ticker dynamic. `getSubscribeMessage` now accepts an optional `crossRateTicker` parameter. `useExchangeWebSocket` derives it from `crossRateConfig` and passes it through. Upbit adapter uses the parameter instead of hardcoding.
+
+**Files changed:**
+- `src/exchanges/types.ts` — Added optional `crossRateTicker` param to `getSubscribeMessage` signature
+- `src/exchanges/adapters/upbit.ts` — Uses `crossRateTicker` param instead of hardcoded `KRW-USDT`
+- `src/exchanges/adapters/binance.ts` — Added `_crossRateTicker` param to signature (no behavior change)
+- `src/hooks/useExchangeWebSocket.ts` — `subscribe` callback derives `crossRateTicker` from `crossRateConfigRef` and passes to `getSubscribeMessage`
+
+### 2. Ticker Filtering on Incoming WS Messages
+
+**Problem:** When switching tabs, old subscription messages leak through before re-subscribe takes effect. `updatePrice` accepted any ticker, so stale/orphan rows appeared in the UI.
+
+**Fix:** Added `tickerSetRef` (a `Set<string>` updated from `tickers` prop on each render). Both Upbit and Binance message paths check `tickerSetRef.current.has(tick.ticker)` before calling `updatePrice`. Cross-rate tickers are handled before this check (early return to `updateCrossRate`), so they aren't filtered out.
+
+**Files changed:**
+- `src/hooks/useExchangeWebSocket.ts` — Added `tickerSetRef` and filter guard in both Upbit and Binance code paths
+
+---
+
+## Completed Previous Session (2026-02-11)
 
 ### 1. Dynamic Ticker Fetching from Exchange REST APIs
 
@@ -76,6 +101,10 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 6. **Virtuoso recycling guard in MainRow.** `prevTickerRef` detects when the component is reused for a different ticker and resets price refs + flash state. Without this, sort-order changes cause spurious flashes.
 
 7. **Folder structure:** Skills live directly in `.claude/skills/` (no `.agents/` indirection, no `.continue/` duplication).
+
+8. **Cross-rate ticker subscription is dynamic.** `getSubscribeMessage` receives the cross-rate ticker from `crossRateConfig`, not hardcoded. Hardcoding breaks any tab that uses a different stablecoin (e.g., USDC).
+
+9. **Incoming WS messages are filtered against `commonTickers`.** `tickerSetRef` in `useExchangeWebSocket` prevents stale/orphan tickers from leaking into the row map during tab switches.
 
 ---
 
