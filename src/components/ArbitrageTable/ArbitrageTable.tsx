@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAtomValue, useAtom, useSetAtom } from 'jotai';
 import { TableVirtuoso } from 'react-virtuoso';
-import { TableCell, TableRow, Box, IconButton } from '@mui/material';
+import { TableCell, TableRow, Box, IconButton, Tooltip } from '@mui/material';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { MarketPairSelector } from '../MarketPairSelector';
 import { sortedTickersAtom, openRowsAtom, pinnedAtom, mutedAtom, rowMapAtom, rowAtomFamily, crossRateAtom, calcPremium } from '../../store/marketAtoms';
@@ -261,13 +261,36 @@ export function ArbitrageTable() {
           <TableCell align="right" sx={{ width: '30%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
               PREMIUM
-              <IconButton
-                size="small"
-                onClick={handleResetPrefs}
-                sx={{ opacity: 0.5, '&:hover': { opacity: 1 }, p: '2px' }}
+              <Tooltip
+                title="Reset pin, mute, and expand preferences for the current tab only. Other tabs are not affected."
+                arrow
+                placement="bottom"
+                slotProps={{
+                  tooltip: {
+                    sx: {
+                      bgcolor: 'rgba(0, 0, 0, 0.92)',
+                      color: 'lime',
+                      border: '1px solid rgba(0, 255, 0, 0.3)',
+                      fontSize: '0.75rem',
+                      fontFamily: '"JetBrains Mono", monospace',
+                    },
+                  },
+                  arrow: {
+                    sx: {
+                      color: 'rgba(0, 0, 0, 0.92)',
+                      '&::before': { border: '1px solid rgba(0, 255, 0, 0.3)' },
+                    },
+                  },
+                }}
               >
-                <RestartAltIcon sx={{ fontSize: 14, color: 'rgba(0, 255, 0, 0.6)' }} />
-              </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={handleResetPrefs}
+                  sx={{ opacity: 0.5, '&:hover': { opacity: 1 }, p: '2px' }}
+                >
+                  <RestartAltIcon sx={{ fontSize: 14, color: 'rgba(0, 255, 0, 0.6)' }} />
+                </IconButton>
+              </Tooltip>
             </Box>
           </TableCell>
         </TableRow>

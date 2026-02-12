@@ -8,6 +8,15 @@ Last updated: 2026-02-12
 
 ## Completed This Session (2026-02-12)
 
+### Tooltip on localStorage Reset Button (0.1.8)
+
+**Change:** Added a themed MUI `<Tooltip>` to the `RestartAltIcon` reset button in the PREMIUM header cell. The tooltip explains that it resets pin, mute, and expand preferences for the current tab only (other tabs are not affected).
+
+**Tooltip styling:** Matches the table's dark/lime theme — black background (`rgba(0, 0, 0, 0.92)`), lime text, green border (`rgba(0, 255, 0, 0.3)`), JetBrains Mono font. Arrow styled to match.
+
+**Files changed:**
+- `src/components/ArbitrageTable/ArbitrageTable.tsx` — Added `Tooltip` import, wrapped `IconButton` in `<Tooltip>` with `slotProps` for themed styling
+
 ### Persist User Preferences (Pin/Mute/Expand) with localStorage (0.1.6 → 0.1.7)
 
 **Problem:** Pin, mute, and expand state was lost on page refresh and tab switch. Users had to re-pin/mute rows every time.
