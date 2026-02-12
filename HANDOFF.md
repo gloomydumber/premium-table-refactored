@@ -2,11 +2,37 @@
 
 Session handoff notes. Read this at the start of every session. Update it before closing.
 
-Last updated: 2026-02-12
+Last updated: 2026-02-13
 
 ---
 
-## Completed This Session (2026-02-12)
+## Completed This Session (2026-02-13)
+
+### Delisted Ticker Filter + Alias Mapping in Binance Adapter (0.1.10)
+
+**Problem:** Binance's `/api/v3/ticker/price` returns tickers that are delisted (e.g., WAVES, AERGO, ELF, SNT) with stale non-zero prices, and tickers that were renamed (e.g., BEAMX on Binance = BEAM on Upbit) which don't match Upbit's canonical names. This caused delisted tickers appearing in the table with stale prices and renamed tickers missing from the table (intersection fails).
+
+**Solution:** Added three constants inside `src/exchanges/adapters/binance.ts`:
+- `DELISTED_TICKERS` — `Set(['WAVES', 'AERGO', 'ELF', 'SNT'])` — filtered out in `fetchAvailableTickers`
+- `TICKER_ALIASES` — `{ BEAMX: 'BEAM' }` — maps Binance names → canonical names
+- `REVERSE_ALIASES` — auto-derived `{ BEAM: 'BEAMX' }` — reverse-maps canonical → Binance names for WS subscriptions
+
+**Touch points (3 methods modified):**
+1. `fetchAvailableTickers` — skips delisted, stores canonical names in `tickerCache` and `restPriceCache`
+2. `getSubscribeMessage` — reverse-maps canonical → exchange name (e.g., BEAM → `beamxusdt@trade`)
+3. `parseMessage` — maps incoming WS trade symbols → canonical (e.g., BEAMX → BEAM)
+
+**Files changed:**
+- `src/exchanges/adapters/binance.ts` — Added constants, applied in 3 methods
+
+### Also Included in 0.1.10 (pre-existing changes committed together)
+
+- `src/store/marketAtoms.ts` — WS readyState atoms default changed from `0` (CONNECTING) to `3` (CLOSED), so status dots show red/closed before WS actually connects instead of misleading yellow/connecting
+- `src/components/WebSocketProvider/WebSocketProvider.tsx` — REST price seeding split into a separate `useEffect` keyed on `pair` (instead of `marketKeyA`/`marketKeyB`), so cached prices re-seed correctly when `initMarketPairAsync` resolves with real tickers. Removed `setWsReadyStateA(0)`/`setWsReadyStateB(0)` from tab-switch effect (readyState is now managed by the WS hook itself)
+
+---
+
+## Completed Previous Session (2026-02-12)
 
 ### react-grid-layout Fixed Container (usage example)
 
@@ -370,7 +396,9 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 
 16. **Binance REST uses `/ticker/price`, not `exchangeInfo`.** The lighter endpoint returns `{symbol, price}[]` instead of full exchange metadata (~1.5MB). Prices are cached in `restPriceCache` and seeded into rows before WS connects via `getCachedPrices()`. Do not switch back to `exchangeInfo`.
 
-17. **WebSocket readyState is exposed via atoms.** `wsReadyStateAAtom`/`wsReadyStateBAtom` are set from `useExchangeWebSocket` return values, synced via `useEffect` in `WebSocketProvider`. Reset to `0` on tab switch. Read in `ArbitrageTable` for header status dots.
+17. **WebSocket readyState is exposed via atoms.** `wsReadyStateAAtom`/`wsReadyStateBAtom` default to `3` (CLOSED), set from `useExchangeWebSocket` return values, synced via `useEffect` in `WebSocketProvider`. Read in `ArbitrageTable` for header status dots.
+
+21. **Binance adapter normalizes ticker names to canonical form.** `DELISTED_TICKERS` filters stale tickers, `TICKER_ALIASES` maps exchange names to canonical names (e.g., BEAMX→BEAM), `REVERSE_ALIASES` reverses for WS subscriptions. Applied in `fetchAvailableTickers`, `getSubscribeMessage`, and `parseMessage`. When adding new exchanges, replicate this pattern per-adapter (see "Shared ticker normalization utility" in Future Work).
 
 18. **react-grid-layout is dev-only.** It's in `devDependencies`, NOT `peerDependencies`. The library build (`build:lib`) does not include it. Only `App.tsx` imports it. Do not add it to `src/lib.ts` exports or vite externals.
 
