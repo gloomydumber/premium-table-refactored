@@ -55,7 +55,7 @@ export const upbitAdapter: ExchangeAdapter = {
     if (cachedKrwTickers) return cachedKrwTickers;
 
     try {
-      const res = await fetch('/api/upbit/v1/market/all');
+      const res = await fetch('https://api.upbit.com/v1/market/all');
       if (!res.ok) throw new Error(`Upbit REST ${res.status}`);
       const data = (await res.json()) as { market: string }[];
       const tickers = data

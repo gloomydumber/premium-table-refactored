@@ -8,7 +8,35 @@ Last updated: 2026-02-12
 
 ## Completed This Session (2026-02-12)
 
-### 0. Sort Freeze on Hover (Prevent Row Jumping While Targeting Pin/Mute)
+### 0. Library Build — Publish as GitHub Package
+
+**Change:** Converted project to dual-mode: standalone dev app (`npm run dev`) AND publishable npm library (`npm run build:lib`) for `@gloomydumber/premium-table` on GitHub Packages.
+
+**New files:**
+- `src/components/PremiumTable/PremiumTable.tsx` — Self-contained wrapper: own Jotai `<Provider>` (atom isolation), ThemeProvider with default dark theme, WebSocketProvider, ArbitrageTable. Props: `height`, optional `theme` override.
+- `src/components/PremiumTable/theme.ts` — Default dark theme extracted from old `App.tsx` (internal, not exported from library).
+- `src/components/PremiumTable/index.ts` — Barrel export.
+- `src/lib.ts` — Library entry point. Exports: `PremiumTable`, `PremiumTableProps`, type-only exports for `MarketRow`, `WalletStatus`, `ExchangeAdapter`, `NormalizedTick`, plus `upbitAdapter` and `binanceAdapter`.
+- `.npmrc` — Scoped registry config for `@gloomydumber` → GitHub Packages.
+
+**Modified files:**
+- `src/App.tsx` — Simplified to just `<PremiumTable height="100vh" />`, dogfooding the library component.
+- `vite.config.ts` — Conditional lib mode (`--mode lib`): `vite-plugin-dts` for `.d.ts` generation, rollup externals for React/MUI/Jotai/etc.
+- `package.json` — Name `@gloomydumber/premium-table`, `private: false`, `version: 0.1.0`, `main`/`types`/`exports` fields, `files` restricted to `dist/index.js` + `dist/index.d.ts`, `peerDependencies` for all runtime deps, `build:lib` and `prepublishOnly` scripts, `publishConfig` for GitHub Packages.
+- `src/exchanges/adapters/binance.ts` — Removed unused `_crossRateTicker` parameter from `getSubscribeMessage` (pre-existing lint error).
+
+**Post-publish fixes (0.1.1 → 0.1.3):**
+- `0.1.1`: Widened React peer dep to `^18.0.0 || ^19.0.0` (Vite template now defaults to React 19).
+- `0.1.2`: Changed Upbit REST fetch from relative `/api/upbit/v1/market/all` (required Vite proxy) to direct `https://api.upbit.com/v1/market/all` (CORS-safe). Removed now-unnecessary Vite proxy config from `vite.config.ts`.
+- `0.1.3`: Bundled JetBrains Mono font via `@fontsource/jetbrains-mono` (regular `dependency`, not peer). Consumers import `@gloomydumber/premium-table/style.css` for font + styles. Removed Google Fonts `<link>` from `index.html`. Lib build now produces `dist/index.css` (font woff2 inlined).
+
+**Key decisions:**
+- Own `<Provider>` in PremiumTable prevents atom conflicts with host app's Jotai store.
+- Default theme is internal — not exported. Consumer overrides via `theme` prop.
+- Runtime deps are `peerDependencies` (externalized in lib build), duplicated in `devDependencies` for standalone dev.
+- `vite-plugin-dts` with `rollupTypes: true` produces a single rolled-up `index.d.ts`.
+
+### 1. Sort Freeze on Hover (Prevent Row Jumping While Targeting Pin/Mute)
 
 **Problem:** Binance WS sends 500-1000+ messages/sec, causing premium-based sort order to shift rapidly. When hovering over a row to click pin/mute, the target row could jump away before the click lands.
 

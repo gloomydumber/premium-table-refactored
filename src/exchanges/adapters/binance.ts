@@ -27,7 +27,7 @@ export const binanceAdapter: ExchangeAdapter = {
     return 'wss://stream.binance.com:9443/ws';
   },
 
-  getSubscribeMessage(quoteCurrency: string, tickers: string[], _crossRateTicker?: string): string {
+  getSubscribeMessage(quoteCurrency: string, tickers: string[]): string {
     const suffix = quoteCurrency.toLowerCase();
     const params = tickers.map(t => `${t.toLowerCase()}${suffix}@trade`);
     return JSON.stringify({ method: 'SUBSCRIBE', params, id: 1 });
