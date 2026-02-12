@@ -39,6 +39,9 @@ export const openRowsAtom = atom<Set<string>>(new Set<string>());
 /** Set of muted tickers — sorted to bottom, dimmed in UI */
 export const mutedAtom = atom<Set<string>>(new Set<string>());
 
+/** When true, sortedTickersAtom returns a frozen snapshot (no re-sorting) */
+export const sortFrozenAtom = atom(false);
+
 /** Compute premium from prices and cross-rate */
 export function calcPremium(priceA: number, priceB: number, crossRate: number): number {
   if (priceA <= 0 || priceB <= 0 || crossRate <= 0) return 0;
@@ -86,6 +89,24 @@ const _rawSortedAtom = atom<string[]>((get) => {
 });
 
 /**
+ * Freeze-aware wrapper: when sortFrozenAtom is true (mouse over tbody),
+ * returns the last snapshot so rows don't reorder while the user is hovering.
+ * Prices still update live — only the order is frozen.
+ */
+let _frozenSnapshot: string[] = [];
+
+const _freezeAwareSortedAtom = atom<string[]>((get) => {
+  const frozen = get(sortFrozenAtom);
+  const raw = get(_rawSortedAtom);
+
+  if (!frozen) {
+    _frozenSnapshot = raw;
+    return raw;
+  }
+  return _frozenSnapshot;
+});
+
+/**
  * Derived read-only atom: sorted ticker list.
  * ArbitrageTable reads ONLY this — never rowMapAtom directly.
  *
@@ -93,7 +114,7 @@ const _rawSortedAtom = atom<string[]>((get) => {
  * if cross-rate changes but sort order is identical, no re-render.
  */
 export const sortedTickersAtom = selectAtom(
-  _rawSortedAtom,
+  _freezeAwareSortedAtom,
   (v) => v,
   (a, b) => a.length === b.length && a.every((v, i) => v === b[i]),
 );

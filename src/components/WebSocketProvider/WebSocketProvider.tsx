@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { marketPairAtom, initMarketPairAsync } from '../../store/marketPairAtom';
-import { rowMapAtom, tickersAtom, crossRateAtom, pinnedAtom, openRowsAtom, mutedAtom } from '../../store/marketAtoms';
+import { rowMapAtom, tickersAtom, crossRateAtom, pinnedAtom, openRowsAtom, mutedAtom, sortFrozenAtom } from '../../store/marketAtoms';
 import { useExchangeWebSocket } from '../../hooks/useExchangeWebSocket';
 import { initMarketData, clearMarketData } from '../../store/marketData';
 
@@ -14,6 +14,7 @@ export function WebSocketProvider() {
   const setPinned = useSetAtom(pinnedAtom);
   const setOpenRows = useSetAtom(openRowsAtom);
   const setMuted = useSetAtom(mutedAtom);
+  const setSortFrozen = useSetAtom(sortFrozenAtom);
   const didFetchRef = useRef(false);
 
   const marketKeyA = `${pair.marketA.exchangeId}:${pair.marketA.quoteCurrency}`;
@@ -32,8 +33,9 @@ export function WebSocketProvider() {
     setPinned(new Set());
     setOpenRows(new Set());
     setMuted(new Set());
+    setSortFrozen(false);
     initMarketData(marketKeyA, marketKeyB, setRowMap, setTickers, setCrossRate);
-  }, [marketKeyA, marketKeyB, setRowMap, setTickers, setCrossRate, setPinned, setOpenRows, setMuted]);
+  }, [marketKeyA, marketKeyB, setRowMap, setTickers, setCrossRate, setPinned, setOpenRows, setMuted, setSortFrozen]);
 
   // Connect exchange A
   useExchangeWebSocket(

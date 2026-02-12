@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   Table,
   TableBody,
@@ -7,7 +7,9 @@ import {
   TableRow,
   Paper,
 } from '@mui/material';
+import { useSetAtom } from 'jotai';
 import type { TableComponents } from 'react-virtuoso';
+import { sortFrozenAtom } from '../../store/marketAtoms';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const virtuosoTableComponents: TableComponents<any> = {
@@ -41,8 +43,18 @@ export const virtuosoTableComponents: TableComponents<any> = {
   TableHead: React.forwardRef<HTMLTableSectionElement>((props, ref) => (
     <TableHead {...props} ref={ref} />
   )),
-  TableBody: React.forwardRef<HTMLTableSectionElement>((props, ref) => (
-    <TableBody {...props} ref={ref} />
-  )),
+  TableBody: React.forwardRef<HTMLTableSectionElement>((props, ref) => {
+    const setSortFrozen = useSetAtom(sortFrozenAtom);
+    const onMouseEnter = useCallback(() => setSortFrozen(true), [setSortFrozen]);
+    const onMouseLeave = useCallback(() => setSortFrozen(false), [setSortFrozen]);
+    return (
+      <TableBody
+        {...props}
+        ref={ref}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      />
+    );
+  }),
   TableRow: (props) => <TableRow hover {...props} />,
 };

@@ -8,7 +8,20 @@ Last updated: 2026-02-12
 
 ## Completed This Session (2026-02-12)
 
-### 0. Icon-Based Row Actions (Pin ↑, Mute ↓, Expand ▾)
+### 0. Sort Freeze on Hover (Prevent Row Jumping While Targeting Pin/Mute)
+
+**Problem:** Binance WS sends 500-1000+ messages/sec, causing premium-based sort order to shift rapidly. When hovering over a row to click pin/mute, the target row could jump away before the click lands.
+
+**Fix:** Sort order freezes while the mouse is over `<tbody>`. Prices still update live in every row — only the row **order** is frozen. When the mouse leaves `<tbody>`, sorting resumes and all accumulated order changes apply in one frame.
+
+**Implementation:** `sortFrozenAtom` (boolean) gates a `_freezeAwareSortedAtom` layer between `_rawSortedAtom` and the `selectAtom` wrapper. When frozen, a module-level `_frozenSnapshot` is returned instead of the live sort. The existing `selectAtom` referential equality check prevents any downstream re-renders while frozen. `sortFrozenAtom` is also reset to `false` on tab switch (same pattern as other UI state atoms).
+
+**Files changed:**
+- `src/store/marketAtoms.ts` — Added `sortFrozenAtom`, `_frozenSnapshot`, `_freezeAwareSortedAtom`; `sortedTickersAtom` now wraps the freeze-aware atom
+- `src/components/ArbitrageTable/VirtuosoTableComponents.tsx` — `TableBody` component uses `useSetAtom(sortFrozenAtom)` with `onMouseEnter`/`onMouseLeave`
+- `src/components/WebSocketProvider/WebSocketProvider.tsx` — Resets `sortFrozenAtom` to `false` on pair change
+
+### 1. Icon-Based Row Actions (Pin ↑, Mute ↓, Expand ▾)
 
 **Change:** Replaced all row-wide click handlers with dedicated icons in the ticker cell. Removed `PushPinIcon`. Removed `onClick` from all price/premium cells. Added `isOpen` prop through `ArbitrageTable → MainRowByTicker → MemoMainRow` + `areEqual` check.
 
@@ -164,7 +177,9 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 
 11. **Pin and mute are mutually exclusive.** `handleTogglePin` unmutes; `handleToggleMute` unpins + closes detail. Both `mutedAtom` and `isMuted` on `MarketRow` must stay in sync (same pattern as `pinnedAtom` / `isPinned`). `handleToggleMute` uses `pinnedRef` (not `pinned` closure) for the same stale-closure reason as `handleToggleExpand`.
 
-12. **UI state atoms must be cleared on tab switch.** `pinnedAtom`, `openRowsAtom`, and `mutedAtom` are reset in `WebSocketProvider`'s pair-change `useEffect` alongside `clearMarketData`. If a new UI state atom is added (e.g., selected rows), it must also be cleared there.
+12. **UI state atoms must be cleared on tab switch.** `pinnedAtom`, `openRowsAtom`, `mutedAtom`, and `sortFrozenAtom` are reset in `WebSocketProvider`'s pair-change `useEffect` alongside `clearMarketData`. If a new UI state atom is added (e.g., selected rows), it must also be cleared there.
+
+13. **Sort freezes on tbody hover.** `sortFrozenAtom` gates `_freezeAwareSortedAtom` which caches a `_frozenSnapshot` (module-level variable). When frozen, `sortedTickersAtom` returns the snapshot instead of the live sort. Prices still update live — only order is frozen. Do not remove the freeze layer or the snapshot variable.
 
 ---
 
@@ -173,7 +188,7 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 - **Upbit REST proxy** (`/api/upbit` in vite.config.ts) only works in dev. Production deployment needs a real proxy or backend endpoint.
 - **Wallet status** is still randomly generated per ticker (placeholder). Needs actual server API.
 - **No test framework** configured. Verification is manual.
-- **Sort order instability:** Premium-based sorting can cause rapid row swaps when prices fluctuate. Consider debouncing sort updates or adding a minimum delta threshold.
+- **Sort order instability (partially mitigated):** Sort freezes on tbody hover, but rows still jump when the mouse is outside the table. Consider debouncing sort updates or adding a minimum delta threshold for the non-hover case.
 - **Binance `exchangeInfo` payload** is large (~1.5MB). Consider caching it or using a lighter endpoint if available.
 - **`useWebSocketHandler` re-subscribe:** When tickers expand (REST fetch completes), ALL tickers are re-subscribed including already-subscribed ones. Binance handles duplicates gracefully, but an incremental subscribe (new tickers only) would be cleaner.
 - **Flash still needs live verification.** The cross-rate decoupling and Virtuoso recycling guard are architecturally correct but should be visually confirmed with `npm run dev` — check that rows flash independently, not all at once.
