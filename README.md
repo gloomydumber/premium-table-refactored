@@ -6,13 +6,25 @@ Built with React + TypeScript + MUI + Jotai + react-virtuoso.
 
 ## Installation
 
-This package is published to GitHub Packages.
+This package is published to [GitHub Packages](https://github.com/gloomydumber/premium-table-refactored/pkgs/npm/premium-table).
+
+Point the `@gloomydumber` scope to GitHub Packages. Choose **one**:
+
+**Option A** — Project-level `.npmrc` file:
+
+```
+@gloomydumber:registry=https://npm.pkg.github.com
+```
+
+**Option B** — `npm login` (per-user, no file needed):
 
 ```bash
-# .npmrc (project root)
-@gloomydumber:registry=https://npm.pkg.github.com
+npm login --scope=@gloomydumber --registry=https://npm.pkg.github.com
+```
 
-# Install
+Then install:
+
+```bash
 npm install @gloomydumber/premium-table
 ```
 
