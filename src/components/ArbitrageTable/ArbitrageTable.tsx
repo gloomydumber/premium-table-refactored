@@ -14,7 +14,7 @@ interface VirtualRow {
   ticker: string;
 }
 
-const SKELETON_COUNT = 30;
+const SKELETON_COUNT = 40;
 
 function MainRowByTicker({
   ticker,
