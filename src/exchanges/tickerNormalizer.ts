@@ -14,6 +14,7 @@ const EXCHANGE_ALIASES: Record<string, Record<string, string>> = {
   binance: { 'BEAMX': 'BEAM' },
   bybit: {},
   upbit: {},
+  bithumb: {},
 };
 
 export interface TickerNormalizer {

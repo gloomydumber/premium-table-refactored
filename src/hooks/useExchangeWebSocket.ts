@@ -30,8 +30,8 @@ export function useExchangeWebSocket(
     const currentAdapter = adapterRef.current;
     const config = crossRateConfigRef.current;
 
-    // Upbit sends Blob — needs async handling
-    if (currentAdapter.id === 'upbit') {
+    // Upbit & Bithumb send Blob — needs async handling
+    if (currentAdapter.id === 'upbit' || currentAdapter.id === 'bithumb') {
       if (data instanceof Object && 'data' in data) {
         const event = data as { data: unknown };
         if (event.data instanceof Blob) {

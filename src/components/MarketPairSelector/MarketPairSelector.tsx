@@ -5,7 +5,7 @@ import { marketPairAtom } from '../../store/marketPairAtom';
 import { resolveCommonTickers, fetchCommonTickers } from '../../exchanges/pair';
 import type { MarketPair, CrossRateConfig } from '../../exchanges/pair';
 import type { ExchangeAdapter } from '../../exchanges/types';
-import { upbitAdapter, binanceAdapter, bybitAdapter } from '../../exchanges/adapters';
+import { upbitAdapter, binanceAdapter, bybitAdapter, bithumbAdapter } from '../../exchanges/adapters';
 
 interface CexPairConfig {
   label: string;
@@ -16,6 +16,9 @@ interface CexPairConfig {
 const AVAILABLE_CEX_PAIRS: CexPairConfig[] = [
   { label: 'Upbit – Binance', adapterA: upbitAdapter, adapterB: binanceAdapter },
   { label: 'Upbit – Bybit', adapterA: upbitAdapter, adapterB: bybitAdapter },
+  { label: 'Upbit – Bithumb', adapterA: upbitAdapter, adapterB: bithumbAdapter },
+  { label: 'Bithumb – Binance', adapterA: bithumbAdapter, adapterB: binanceAdapter },
+  { label: 'Bithumb – Bybit', adapterA: bithumbAdapter, adapterB: bybitAdapter },
   { label: 'Binance – Bybit', adapterA: binanceAdapter, adapterB: bybitAdapter },
 ];
 
@@ -70,9 +73,10 @@ export function MarketPairSelector() {
   const applyCexPair = (index: number) => {
     const config = AVAILABLE_CEX_PAIRS[index];
     const isKoreanA = config.adapterA.availableQuoteCurrencies.includes('KRW');
+    const isKoreanB = config.adapterB.availableQuoteCurrencies.includes('KRW');
     const stables = getAvailableStablecoins(config.adapterA, config.adapterB);
     const quoteCurrencyA = isKoreanA ? 'KRW' : (stables[0] ?? 'USDT');
-    const quoteCurrencyB = isKoreanA ? (stables[0] ?? 'USDT') : quoteCurrencyA;
+    const quoteCurrencyB = isKoreanB ? 'KRW' : (stables[0] ?? 'USDT');
 
     const commonTickers = resolveCommonTickers(
       config.adapterA.getAvailableTickers(quoteCurrencyA),
@@ -187,22 +191,23 @@ export function MarketPairSelector() {
         ))}
       </Select>
 
-      {stablecoins.length > 0 && (
-        <Tabs
-          value={stablecoinIndex >= 0 ? stablecoinIndex : 0}
-          onChange={handleStablecoinChange}
-          variant="scrollable"
-          scrollButtons={false}
-          sx={{
-            minHeight: 20,
-            '& .MuiTabs-indicator': { backgroundColor: '#00ff00', height: '1px' },
-          }}
-        >
-          {stablecoins.map((sc) => (
-            <Tab key={sc} label={sc} sx={innerTabSx} />
-          ))}
-        </Tabs>
-      )}
+      <Tabs
+        value={stablecoins.length > 0 ? (stablecoinIndex >= 0 ? stablecoinIndex : 0) : 0}
+        onChange={stablecoins.length > 0 ? handleStablecoinChange : undefined}
+        variant="scrollable"
+        scrollButtons={false}
+        sx={{
+          minHeight: 20,
+          '& .MuiTabs-indicator': { backgroundColor: '#00ff00', height: '1px' },
+        }}
+      >
+        {stablecoins.length > 0
+          ? stablecoins.map((sc) => (
+              <Tab key={sc} label={sc} sx={innerTabSx} />
+            ))
+          : <Tab label="KRW" sx={innerTabSx} />
+        }
+      </Tabs>
     </Box>
   );
 }

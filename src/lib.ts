@@ -10,6 +10,7 @@ export type { ExchangeAdapter, NormalizedTick } from './exchanges/types';
 export { upbitAdapter } from './exchanges/adapters/upbit';
 export { binanceAdapter } from './exchanges/adapters/binance';
 export { bybitAdapter } from './exchanges/adapters/bybit';
+export { bithumbAdapter } from './exchanges/adapters/bithumb';
 
 // Ticker normalization (for custom adapters)
 export { createTickerNormalizer } from './exchanges/tickerNormalizer';

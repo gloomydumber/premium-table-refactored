@@ -8,6 +8,50 @@ Last updated: 2026-02-13
 
 ## Completed This Session (2026-02-13)
 
+### Bithumb Exchange Adapter
+
+Added Bithumb (Korean CEX) as the 4th exchange. Bithumb's API is nearly identical to Upbit — same symbol format (`KRW-BTC`), same WS Blob messages, same SIMPLE format fields (`cd`/`tp`).
+
+**Bithumb API details:**
+- REST: `GET https://api.bithumb.com/v1/market/all` → `[{ "market": "KRW-BTC" }, ...]`
+- WebSocket: `wss://ws-api.bithumb.com/websocket/v1`
+- Subscribe: `[{"ticket":"premium-table"},{"type":"ticker","codes":["KRW-BTC",...]},{"format":"SIMPLE"}]`
+- Response: Blob → JSON with `cd` (`KRW-BTC`), `tp` (trade_price) — same as Upbit SIMPLE format
+- Quote currencies: KRW only
+- No heartbeat required
+
+**Key decision:** Reuses `parseUpbitJson` from `upbit.ts` in `useExchangeWebSocket` (same Blob→JSON→`{cd,tp}` format). The Blob handling branch in the WS hook now matches both `'upbit'` and `'bithumb'` adapter IDs.
+
+**Available pairs now:** Upbit–Binance, Upbit–Bybit, Upbit–Bithumb, Bithumb–Binance, Bithumb–Bybit, Binance–Bybit.
+
+**Files created:**
+- `src/exchanges/adapters/bithumb.ts` — Full adapter: REST fetch, WS subscribe, own `createTickerNormalizer('bithumb')`, module-level ticker cache
+
+**Files changed:**
+- `src/exchanges/tickerNormalizer.ts` — Added `bithumb: {}` to `EXCHANGE_ALIASES`
+- `src/exchanges/adapters/index.ts` — Added `bithumbAdapter` export
+- `src/hooks/useExchangeWebSocket.ts` — Blob handling branch: `currentAdapter.id === 'upbit'` → `currentAdapter.id === 'upbit' || currentAdapter.id === 'bithumb'`
+- `src/components/MarketPairSelector/MarketPairSelector.tsx` — Imported `bithumbAdapter`, added Upbit–Bithumb, Bithumb–Binance, Bithumb–Bybit to `AVAILABLE_CEX_PAIRS`
+- `src/lib.ts` — Added `bithumbAdapter` export
+
+### Korean-Korean Pair Quote Currency Fix
+
+**Problem:** Selecting Upbit–Bithumb showed only skeleton rows — Bithumb WS never connected. `applyCexPair` assumed the B-side exchange always has stablecoins when A-side is Korean: `quoteCurrencyB = stables[0] ?? 'USDT'`. For Korean-Korean pairs `stables` is `[]`, so `quoteCurrencyB` fell through to `'USDT'`. Bithumb doesn't support USDT, so `getAvailableTickers('USDT')` returned `[]` and the WS never subscribed.
+
+**Fix:** Added `isKoreanB` check. Each side now independently resolves its quote currency: `isKoreanA ? 'KRW' : stables[0]` for A, `isKoreanB ? 'KRW' : stables[0]` for B.
+
+**Files changed:**
+- `src/components/MarketPairSelector/MarketPairSelector.tsx` — `applyCexPair` uses independent `isKoreanA`/`isKoreanB` checks
+
+### KRW Placeholder Tab for Korean-Korean Pairs
+
+**Problem:** Korean-Korean pairs (Upbit–Bithumb) had no stablecoin tabs, causing the header UI to shrink and look inconsistent compared to other pairs.
+
+**Fix:** When `stablecoins` is empty, a single non-interactive "KRW" tab is rendered as a placeholder. The `Tabs` component is now always rendered (not conditionally).
+
+**Files changed:**
+- `src/components/MarketPairSelector/MarketPairSelector.tsx` — Always render `<Tabs>`, show `<Tab label="KRW" />` when `stablecoins` is empty
+
 ### Centralized Ticker Normalization Layer
 
 Extracted per-adapter ticker alias logic (e.g., Binance `BEAMX→BEAM`) into a shared `tickerNormalizer.ts` module. Any exchange pair now resolves aliases through one canonical registry instead of each adapter defining its own `TICKER_ALIASES` / `REVERSE_ALIASES` constants.
@@ -493,6 +537,8 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 22. **Ticker normalization is centralized in `tickerNormalizer.ts`.** `EXCHANGE_ALIASES` maps `(exchangeId, exchangeName) → canonicalName`. Each adapter calls `createTickerNormalizer(exchangeId)` at module scope and uses `normalizer.toCanonical()` / `normalizer.toExchange()` at 3 touch points: `fetchAvailableTickers`, `getSubscribeMessage`, `parseMessage`. `DELISTED_TICKERS` stays per-adapter (exchange-specific concern). When adding a new exchange, add aliases to the centralized registry and wire up the normalizer in the adapter.
 
 23. **Bybit Spot: max 10 args per subscribe request.** `getSubscribeMessage` returns `string[]` with batches of 10. The `ExchangeAdapter` interface allows `string | string[]` return type. `useExchangeWebSocket.ts` iterates the array and sends each message. Other adapters (Upbit, Binance) still return a single string. If adding an exchange with similar limits, return `string[]` from `getSubscribeMessage`.
+
+24. **Bithumb uses the same Blob→JSON path as Upbit.** Both exchanges send Blob-wrapped SIMPLE format messages with `cd`/`tp` fields. The Blob handling branch in `useExchangeWebSocket.ts` matches both `'upbit'` and `'bithumb'` adapter IDs and reuses `parseUpbitJson`. If adding another exchange with Blob messages and the same SIMPLE format, extend this check. If the format differs, add a separate branch.
 
 18. **react-grid-layout is dev-only.** It's in `devDependencies`, NOT `peerDependencies`. The library build (`build:lib`) does not include it. Only `App.tsx` imports it. Do not add it to `src/lib.ts` exports or vite externals.
 

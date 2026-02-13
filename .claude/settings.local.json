@@ -20,7 +20,9 @@
       "WebFetch(domain:developers.binance.com)",
       "WebFetch(domain:docs.upbit.com)",
       "Bash(git add:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "WebFetch(domain:bybit-exchange.github.io)",
+      "WebFetch(domain:apidocs.bithumb.com)"
     ]
   }
 }
