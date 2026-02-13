@@ -7,17 +7,13 @@ import {
   TableBody,
 } from '@mui/material';
 import type { WalletStatus } from '../../../types/market';
+import { EXCHANGE_COLORS } from '../../../exchanges/colors';
 
 interface DetailRowProps {
   walletStatus: WalletStatus[];
   exchangeNameA: string;
   exchangeNameB: string;
 }
-
-const EXCHANGE_COLORS: Record<string, string> = {
-  Upbit: '#0A6CFF',
-  Binance: '#F0B90B',
-};
 
 function StatusText({ ok }: { ok: boolean }) {
   return (

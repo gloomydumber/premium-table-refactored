@@ -2,11 +2,35 @@
 
 Session handoff notes. Read this at the start of every session. Update it before closing.
 
-Last updated: 2026-02-13
+Last updated: 2026-02-14
 
 ---
 
-## Completed This Session (2026-02-13)
+## Completed This Session (2026-02-14)
+
+### Exchange Brand Colors for All 5 Exchanges (0.1.15)
+
+**Problem:** The wallet status detail row (`DetailRow`) only defined brand colors for Upbit and Binance in `EXCHANGE_COLORS`. Bybit, Bithumb, and OKX fell back to `#00ff00` (lime green), making the one-way transfer gradient indistinguishable from the "both directions" green. Table header price columns also had no exchange-specific coloring.
+
+**Fix:**
+1. Extracted `EXCHANGE_COLORS` from `DetailRow.tsx` into a shared `src/exchanges/colors.ts` module
+2. Added brand colors for all 5 exchanges: Upbit (blue `#0A6CFF`), Binance (gold `#F0B90B`), Bybit (teal `#00C4B3`), Bithumb (orange `#F37321`), OKX (silver `#CFD3D8`)
+3. Applied exchange brand colors to the two price column `<th>` headers in `ArbitrageTable`
+
+**Design decision:** Bybit's official brand orange was too similar to Binance's gold on a dark background. Used Bybit's secondary teal (`#00C4B3`) for clear visual separation.
+
+**Files created:**
+- `src/exchanges/colors.ts` — Shared `EXCHANGE_COLORS` constant
+
+**Files changed:**
+- `src/components/ArbitrageTable/Row/DetailRow.tsx` — Imports from shared `colors.ts` instead of defining its own map
+- `src/components/ArbitrageTable/ArbitrageTable.tsx` — Imports `EXCHANGE_COLORS`, applies to price column header `sx.color`
+- `README.md` — Added "Exchange Brand Colors" section with color table
+- `package.json` — Version `0.1.14` → `0.1.15`
+
+---
+
+## Completed Previous Session (2026-02-13)
 
 ### GitHub Release notes fix
 
@@ -620,6 +644,8 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 24. **Bithumb uses the same Blob→JSON path as Upbit.** Both exchanges send Blob-wrapped SIMPLE format messages with `cd`/`tp` fields. The Blob handling branch in `useExchangeWebSocket.ts` matches both `'upbit'` and `'bithumb'` adapter IDs and reuses `parseUpbitJson`. If adding another exchange with Blob messages and the same SIMPLE format, extend this check. If the format differs, add a separate branch.
 
 25. **OKX uses JSON messages (not Blob).** Falls into the generic synchronous `parseMessage` path in `useExchangeWebSocket.ts` — same as Binance/Bybit. Heartbeat is `"ping"` (plain string) at 25s. Subscribe messages batched at 25 args per message (returns `string[]`). Symbol format is hyphen-separated (`BTC-USDT`), parsed by splitting on `-`.
+
+26. **Exchange brand colors are centralized in `src/exchanges/colors.ts`.** `EXCHANGE_COLORS` maps exchange display name → hex color. Used in `ArbitrageTable` for price column header text color and in `DetailRow` for one-way transfer gradient. When adding a new exchange, add its brand color here. Fallback is `#00ff00` (lime green).
 
 18. **react-grid-layout is dev-only.** It's in `devDependencies`, NOT `peerDependencies`. The library build (`build:lib`) does not include it. Only `App.tsx` imports it. Do not add it to `src/lib.ts` exports or vite externals.
 

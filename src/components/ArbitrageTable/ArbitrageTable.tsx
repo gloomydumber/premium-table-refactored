@@ -6,6 +6,7 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { MarketPairSelector } from '../MarketPairSelector';
 import { sortedTickersAtom, openRowsAtom, pinnedAtom, mutedAtom, rowMapAtom, rowAtomFamily, crossRateAtom, calcPremium, wsReadyStateAAtom, wsReadyStateBAtom } from '../../store/marketAtoms';
 import { marketPairAtom } from '../../store/marketPairAtom';
+import { EXCHANGE_COLORS } from '../../exchanges/colors';
 import { virtuosoTableComponents } from './VirtuosoTableComponents';
 import { MemoMainRow, MemoDetailRow } from './Row';
 import { SkeletonRow } from './SkeletonRow';
@@ -306,10 +307,10 @@ export function ArbitrageTable() {
           <TableCell sx={{ width: '16%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)', verticalAlign: 'bottom', p: '0 8px 4px' }}>
             <MarketPairSelector />
           </TableCell>
-          <TableCell align="right" sx={{ width: '30%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)' }}>
+          <TableCell align="right" sx={{ width: '30%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)', color: EXCHANGE_COLORS[exchangeNameA] ?? '#00ff00' }}>
             {exchangeNameA.toUpperCase()} ({quoteCurrencyA}){wsStatusDot(readyStateA, exchangeNameA)}
           </TableCell>
-          <TableCell align="right" sx={{ width: '30%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)' }}>
+          <TableCell align="right" sx={{ width: '30%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)', color: EXCHANGE_COLORS[exchangeNameB] ?? '#00ff00' }}>
             {exchangeNameB.toUpperCase()} ({quoteCurrencyB}){wsStatusDot(readyStateB, exchangeNameB)}
           </TableCell>
           <TableCell align="right" sx={{ width: '24%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)' }}>

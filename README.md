@@ -173,10 +173,22 @@ When the mouse is over the table body, sort order freezes to prevent rows from j
 
 Uses `react-virtuoso` for efficient rendering of large ticker lists. Only visible rows are rendered in the DOM.
 
+### Exchange Brand Colors
+
+Each exchange has a distinct brand color used in table header price columns and wallet status detail gradients:
+
+| Exchange | Color |
+|----------|-------|
+| Upbit | Blue (`#0A6CFF`) |
+| Binance | Gold (`#F0B90B`) |
+| Bybit | Teal (`#00C4B3`) |
+| Bithumb | Orange (`#F37321`) |
+| OKX | Silver (`#CFD3D8`) |
+
 ### Wallet Status Detail
 
 Expanding a pinned row reveals per-network transfer status:
-- Network name color indicates viable transfer direction (green = both, red = none, gradient = one-way)
+- Network name color indicates viable transfer direction (green = both, red = none, exchange-colored gradient = one-way)
 - Shows deposit/withdraw status for each exchange
 
 > **Note:** Wallet status is currently randomly generated placeholder data. A future version will connect to a server API.
