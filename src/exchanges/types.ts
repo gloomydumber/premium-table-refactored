@@ -38,7 +38,7 @@ export interface ExchangeAdapter {
    * Build the subscription message to send after WS connects (if needed).
    * Upbit requires this; Binance encodes subscriptions in the URL.
    */
-  getSubscribeMessage?(quoteCurrency: string, tickers: string[], crossRateTicker?: string): string;
+  getSubscribeMessage?(quoteCurrency: string, tickers: string[], crossRateTicker?: string): string | string[];
 
   /**
    * Parse a raw WS message into a normalized price update, or null if irrelevant.
@@ -68,4 +68,10 @@ export interface ExchangeAdapter {
    * e.g., Upbit "KRW-BTC" → "BTC", Binance "BTCUSDT" → "BTC"
    */
   normalizeSymbol(rawSymbol: string, quoteCurrency: string): string;
+
+  /**
+   * Optional application-level heartbeat config.
+   * When set, the WebSocket handler will send periodic ping messages.
+   */
+  heartbeatConfig?: { message: string; interval: number };
 }

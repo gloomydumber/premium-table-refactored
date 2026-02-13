@@ -67,7 +67,7 @@ The comparison unit is **market vs market**, where a market = (exchange, quoteCu
 
 `src/exchanges/types.ts` defines the `ExchangeAdapter` interface. Each adapter provides: WebSocket URL generation, subscribe message format, message parsing (→ `NormalizedTick`), available tickers per quote currency, and symbol normalization (e.g., `KRW-BTC` → `BTC`, `BTCUSDT` → `BTC`).
 
-Adding a new exchange = implement one adapter file + register it. No new hooks or components needed.
+Adding a new exchange = implement one adapter file + register it + add aliases to `tickerNormalizer.ts`. No new hooks or components needed.
 
 ### State Management (Jotai)
 
@@ -104,7 +104,7 @@ Priority: expanded pinned → pinned → normal (|premium| descending) → muted
 
 ### UI Structure
 
-Two-level tab navigation: outer tabs select CEX pair (e.g., Upbit-Binance), inner tabs select stablecoin/quote currency (e.g., USDT, USDC). Korean-vs-Korean pairs have no inner tabs (both KRW).
+Two-level navigation: a `Select` dropdown picks the CEX pair (e.g., Upbit–Binance, Binance–Bybit), inner `Tabs` select stablecoin/quote currency (e.g., USDT, USDC). Korean-vs-Korean pairs have no inner tabs (both KRW).
 
 ## Key Implementation Details
 

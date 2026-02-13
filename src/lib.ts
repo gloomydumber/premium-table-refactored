@@ -9,6 +9,11 @@ export type { ExchangeAdapter, NormalizedTick } from './exchanges/types';
 // Exchange adapters (for future custom exchanges)
 export { upbitAdapter } from './exchanges/adapters/upbit';
 export { binanceAdapter } from './exchanges/adapters/binance';
+export { bybitAdapter } from './exchanges/adapters/bybit';
+
+// Ticker normalization (for custom adapters)
+export { createTickerNormalizer } from './exchanges/tickerNormalizer';
+export type { TickerNormalizer } from './exchanges/tickerNormalizer';
 
 // Utilities (for host app integration)
 export { setUpdatesPaused } from './store/marketData';

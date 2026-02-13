@@ -88,12 +88,18 @@ export function useExchangeWebSocket(
         ? config.code
         : undefined;
     const msg = adapterRef.current.getSubscribeMessage?.(quoteCurrency, tickers, crossRateTicker);
-    if (msg) sendMessage(msg);
+    if (msg) {
+      if (Array.isArray(msg)) {
+        msg.forEach(m => sendMessage(m));
+      } else {
+        sendMessage(msg);
+      }
+    }
   }, [quoteCurrency, tickers]);
 
   const url = adapter.getWebSocketUrl(quoteCurrency, tickers);
   const hasSubscribe = !!adapter.getSubscribeMessage;
 
-  const { readyState } = useWebSocketHandler(url, processMessage, hasSubscribe ? subscribe : undefined);
+  const { readyState } = useWebSocketHandler(url, processMessage, hasSubscribe ? subscribe : undefined, adapter.heartbeatConfig);
   return readyState;
 }

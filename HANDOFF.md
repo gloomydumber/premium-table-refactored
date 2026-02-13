@@ -8,6 +8,80 @@ Last updated: 2026-02-13
 
 ## Completed This Session (2026-02-13)
 
+### Centralized Ticker Normalization Layer
+
+Extracted per-adapter ticker alias logic (e.g., Binance `BEAMX→BEAM`) into a shared `tickerNormalizer.ts` module. Any exchange pair now resolves aliases through one canonical registry instead of each adapter defining its own `TICKER_ALIASES` / `REVERSE_ALIASES` constants.
+
+**Design:** `createTickerNormalizer(exchangeId)` returns `{ toCanonical, toExchange }` using a centralized `EXCHANGE_ALIASES` map. Each adapter calls the factory once at module scope and uses it at the same 3 touch points: `fetchAvailableTickers`, `getSubscribeMessage`, `parseMessage`.
+
+**Files created:**
+- `src/exchanges/tickerNormalizer.ts` — `EXCHANGE_ALIASES` registry, `TickerNormalizer` interface, `createTickerNormalizer()` factory
+
+**Files changed:**
+- `src/exchanges/adapters/binance.ts` — Removed `TICKER_ALIASES` and `REVERSE_ALIASES` constants, replaced with `normalizer.toCanonical()` / `normalizer.toExchange()` calls
+- `src/exchanges/adapters/bybit.ts` — Added normalizer at 3 touch points (currently all no-ops with empty alias map, but wired up for future aliases)
+- `src/exchanges/adapters/upbit.ts` — Added normalizer at 3 touch points (currently all no-ops with empty alias map)
+- `src/lib.ts` — Exports `createTickerNormalizer` and `TickerNormalizer` type for library consumers building custom adapters
+
+**Adding a new exchange after this:** Add aliases to `EXCHANGE_ALIASES` in `tickerNormalizer.ts`, call `createTickerNormalizer(exchangeId)` in the adapter, use `toCanonical()`/`toExchange()` at the 3 touch points.
+
+### Bybit Subscription Batching Fix
+
+**Problem:** Bybit Spot WebSocket limits subscribe requests to 10 args per message. We were sending 80+ args in a single subscribe message, causing Bybit to silently reject the subscription. Connection showed green (WS open) but no ticker data flowed.
+
+**Fix:** Changed `getSubscribeMessage` return type from `string` to `string | string[]` in the `ExchangeAdapter` interface. Bybit adapter now batches args into groups of 10, returning `string[]`. `useExchangeWebSocket.ts` sends each message separately when an array is returned.
+
+**Files changed:**
+- `src/exchanges/types.ts` — `getSubscribeMessage` return type: `string` → `string | string[]`
+- `src/exchanges/adapters/bybit.ts` — `getSubscribeMessage` returns `string[]` with batches of 10
+- `src/hooks/useExchangeWebSocket.ts` — Handles `string | string[]` from `getSubscribeMessage`
+
+### CEX Pair Selector: Tabs → Select Dropdown + Binance-Bybit Restored
+
+**Problem:** Outer CEX pair tabs don't scale — adding more exchanges makes the tab bar too cramped. Also, the Binance-Bybit pair was missing from `AVAILABLE_CEX_PAIRS`.
+
+**Fix:** Replaced the outer `Tabs` component with an MUI `Select` dropdown. Dark-themed (green border, dark menu, green text), compact at 18px height. Auto-blurs after selection to avoid lingering focus highlight. Stablecoin inner tabs remain as-is.
+
+**Available pairs now:** Upbit–Binance, Upbit–Bybit, Binance–Bybit.
+
+**Files changed:**
+- `src/components/MarketPairSelector/MarketPairSelector.tsx` — Replaced outer `Tabs`/`Tab` with `Select`/`MenuItem`, restored Binance-Bybit pair, removed unused `tabSx` constant
+
+---
+
+## Completed Previous Session (2026-02-13)
+
+### Bybit Exchange Adapter
+
+Added Bybit as a third exchange, enabling Upbit-Bybit and Binance-Bybit premium comparisons.
+
+**Bybit API details:**
+- REST: `https://api.bybit.com/v5/market/tickers?category=spot` — fetches all spot tickers with prices
+- WebSocket: `wss://stream.bybit.com/v5/public/spot` with `tickers.*` stream (50ms consolidated updates with `lastPrice`)
+- Subscribe: `{ "op": "subscribe", "args": ["tickers.BTCUSDT", ...] }`
+- Heartbeat: Application-level ping required every 20s (`{"op":"ping"}`)
+- Symbol format: Same as Binance (`BTCUSDT`, `ETHUSDC` — strip quote suffix for base ticker)
+- Quote currencies: USDT, USDC
+
+**Stream choice:** Uses `tickers` stream (not `publicTrade`). Simpler message format (single object vs trade array), sufficient granularity for premium display, lower message volume.
+
+**Heartbeat implementation:** Added optional `heartbeatConfig` to `ExchangeAdapter` interface. `useWebSocketHandler` passes it to `react-use-websocket`'s built-in `heartbeat` option (which already supports `message`, `interval`, `timeout`). Only Bybit sets this — Upbit and Binance don't need application-level heartbeat.
+
+**Files created:**
+- `src/exchanges/adapters/bybit.ts` — Full adapter: REST fetch, WS parsing, ticker/price caching, heartbeat config
+
+**Files changed:**
+- `src/exchanges/types.ts` — Added optional `heartbeatConfig?: { message: string; interval: number }` to `ExchangeAdapter`
+- `src/exchanges/adapters/index.ts` — Added `bybitAdapter` export
+- `src/hooks/useWebSocketHandler.ts` — Added optional 4th `heartbeat` parameter, spread into `useWebSocket` options
+- `src/hooks/useExchangeWebSocket.ts` — Passes `adapter.heartbeatConfig` to `useWebSocketHandler`
+- `src/components/MarketPairSelector/MarketPairSelector.tsx` — Added Upbit-Bybit and Binance-Bybit to `AVAILABLE_CEX_PAIRS`
+- `src/lib.ts` — Added `bybitAdapter` export
+
+---
+
+## Completed Previous Session (2026-02-13)
+
 ### README Installation Section Update
 
 Updated the Installation section in `README.md` to present two clear options for configuring the `@gloomydumber` GitHub Packages scope:
@@ -414,7 +488,11 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 
 17. **WebSocket readyState is exposed via atoms.** `wsReadyStateAAtom`/`wsReadyStateBAtom` default to `3` (CLOSED), set from `useExchangeWebSocket` return values, synced via `useEffect` in `WebSocketProvider`. Read in `ArbitrageTable` for header status dots.
 
-21. **Binance adapter normalizes ticker names to canonical form.** `DELISTED_TICKERS` filters stale tickers, `TICKER_ALIASES` maps exchange names to canonical names (e.g., BEAMX→BEAM), `REVERSE_ALIASES` reverses for WS subscriptions. Applied in `fetchAvailableTickers`, `getSubscribeMessage`, and `parseMessage`. When adding new exchanges, replicate this pattern per-adapter (see "Shared ticker normalization utility" in Future Work).
+21. **Heartbeat is adapter-driven.** `ExchangeAdapter.heartbeatConfig` is optional. When set, `useWebSocketHandler` passes it to `react-use-websocket`'s built-in `heartbeat` option. Only adapters that need application-level ping (e.g., Bybit) set this. Do not add manual `setInterval` ping logic — use the library's heartbeat support.
+
+22. **Ticker normalization is centralized in `tickerNormalizer.ts`.** `EXCHANGE_ALIASES` maps `(exchangeId, exchangeName) → canonicalName`. Each adapter calls `createTickerNormalizer(exchangeId)` at module scope and uses `normalizer.toCanonical()` / `normalizer.toExchange()` at 3 touch points: `fetchAvailableTickers`, `getSubscribeMessage`, `parseMessage`. `DELISTED_TICKERS` stays per-adapter (exchange-specific concern). When adding a new exchange, add aliases to the centralized registry and wire up the normalizer in the adapter.
+
+23. **Bybit Spot: max 10 args per subscribe request.** `getSubscribeMessage` returns `string[]` with batches of 10. The `ExchangeAdapter` interface allows `string | string[]` return type. `useExchangeWebSocket.ts` iterates the array and sends each message. Other adapters (Upbit, Binance) still return a single string. If adding an exchange with similar limits, return `string[]` from `getSubscribeMessage`.
 
 18. **react-grid-layout is dev-only.** It's in `devDependencies`, NOT `peerDependencies`. The library build (`build:lib`) does not include it. Only `App.tsx` imports it. Do not add it to `src/lib.ts` exports or vite externals.
 
@@ -434,5 +512,5 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 - **Flash still needs live verification.** The cross-rate decoupling and Virtuoso recycling guard are architecturally correct but should be visually confirmed with `npm run dev` — check that rows flash independently, not all at once.
 - **Export/share:** Export current table snapshot (pinned rows, premiums) as CSV or shareable link. Considerable for future.
 - **Alerts/notifications:** Notify when a ticker's premium crosses a user-defined threshold. Considerable for future.
-- **Shared ticker normalization utility:** Delisted-ticker filtering and alias mapping (e.g., `DELISTED_TICKERS`, `TICKER_ALIASES`, `REVERSE_ALIASES`) currently live as constants inside `binance.ts`. When adding more exchanges (Bithumb, OKX, HTX, Coinbase, etc.), each adapter will need the same pattern. Consider extracting a shared utility (e.g., `createTickerNormalizer({ delisted, aliases })`) that returns filter/map/reverse-map helpers, so each adapter can declare its data and get consistent behavior without duplicating the logic. Not needed until a second adapter requires it.
+- **~~Shared ticker normalization utility~~:** Done — `src/exchanges/tickerNormalizer.ts` provides `createTickerNormalizer(exchangeId)` with centralized `EXCHANGE_ALIASES` registry. All three adapters wired up.
 - **GitHub Actions automated publish:** Currently publishing to GitHub Packages is done manually via `npm publish`. Consider adding a GitHub Actions workflow (e.g., `.github/workflows/publish.yml`) that automatically publishes on version tag push or release creation. This would replace the manual `npm publish` step and ensure consistent, reproducible builds.

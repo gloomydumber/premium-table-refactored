@@ -1,4 +1,7 @@
 import type { ExchangeAdapter, NormalizedTick } from '../types';
+import { createTickerNormalizer } from '../tickerNormalizer';
+
+const normalizer = createTickerNormalizer('upbit');
 
 /** Module-level cache for REST-fetched tickers */
 let cachedKrwTickers: string[] | null = null;
@@ -13,7 +16,7 @@ export const upbitAdapter: ExchangeAdapter = {
   },
 
   getSubscribeMessage(quoteCurrency: string, tickers: string[], crossRateTicker?: string): string {
-    const codes = tickers.map(t => `${quoteCurrency}-${t}`);
+    const codes = tickers.map(t => `${quoteCurrency}-${normalizer.toExchange(t)}`);
     if (crossRateTicker && !codes.includes(crossRateTicker)) {
       codes.push(crossRateTicker);
     }
@@ -51,7 +54,7 @@ export const upbitAdapter: ExchangeAdapter = {
       const data = (await res.json()) as { market: string }[];
       const tickers = data
         .filter(m => m.market.startsWith('KRW-'))
-        .map(m => m.market.split('-')[1]!);
+        .map(m => normalizer.toCanonical(m.market.split('-')[1]!));
       cachedKrwTickers = tickers;
       return tickers;
     } catch (e) {
@@ -77,8 +80,9 @@ export function parseUpbitJson(parsed: Record<string, unknown>): NormalizedTick 
 
   const parts = code.split('-');
   const quoteCurrency = parts[0] ?? '';
-  const ticker = parts[1] ?? '';
-  if (!ticker) return null;
+  const rawTicker = parts[1] ?? '';
+  if (!rawTicker) return null;
 
+  const ticker = normalizer.toCanonical(rawTicker);
   return { ticker, price, quoteCurrency };
 }

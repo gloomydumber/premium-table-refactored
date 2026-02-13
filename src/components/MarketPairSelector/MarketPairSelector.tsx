@@ -1,10 +1,11 @@
 import { useAtom } from 'jotai';
-import { Box, Tabs, Tab } from '@mui/material';
+import { Box, Tabs, Tab, Select, MenuItem } from '@mui/material';
+import type { SelectChangeEvent } from '@mui/material';
 import { marketPairAtom } from '../../store/marketPairAtom';
 import { resolveCommonTickers, fetchCommonTickers } from '../../exchanges/pair';
 import type { MarketPair, CrossRateConfig } from '../../exchanges/pair';
 import type { ExchangeAdapter } from '../../exchanges/types';
-import { upbitAdapter, binanceAdapter } from '../../exchanges/adapters';
+import { upbitAdapter, binanceAdapter, bybitAdapter } from '../../exchanges/adapters';
 
 interface CexPairConfig {
   label: string;
@@ -13,7 +14,9 @@ interface CexPairConfig {
 }
 
 const AVAILABLE_CEX_PAIRS: CexPairConfig[] = [
-  { label: 'Upbit-Binance', adapterA: upbitAdapter, adapterB: binanceAdapter },
+  { label: 'Upbit – Binance', adapterA: upbitAdapter, adapterB: binanceAdapter },
+  { label: 'Upbit – Bybit', adapterA: upbitAdapter, adapterB: bybitAdapter },
+  { label: 'Binance – Bybit', adapterA: binanceAdapter, adapterB: bybitAdapter },
 ];
 
 function getAvailableStablecoins(adapterA: ExchangeAdapter, adapterB: ExchangeAdapter): string[] {
@@ -40,22 +43,16 @@ function buildCrossRateConfig(
   return { type: 'btc-derived' };
 }
 
-const tabSx = {
-  minHeight: 22,
+const innerTabSx = {
+  minHeight: 20,
   minWidth: 0,
   px: 0.5,
   py: 0,
-  fontSize: '0.7rem',
+  fontSize: '0.65rem',
   textTransform: 'uppercase' as const,
   fontFamily: 'inherit',
   color: 'rgba(0, 255, 0, 0.4) !important',
   '&.Mui-selected': { color: '#00ff00 !important' },
-};
-
-const innerTabSx = {
-  ...tabSx,
-  minHeight: 20,
-  fontSize: '0.65rem',
 };
 
 export function MarketPairSelector() {
@@ -70,14 +67,13 @@ export function MarketPairSelector() {
   const currentStablecoin = pair.marketB.quoteCurrency;
   const stablecoinIndex = stablecoins.indexOf(currentStablecoin);
 
-  const handleCexChange = (_: React.SyntheticEvent, index: number) => {
+  const applyCexPair = (index: number) => {
     const config = AVAILABLE_CEX_PAIRS[index];
     const isKoreanA = config.adapterA.availableQuoteCurrencies.includes('KRW');
     const stables = getAvailableStablecoins(config.adapterA, config.adapterB);
     const quoteCurrencyA = isKoreanA ? 'KRW' : (stables[0] ?? 'USDT');
     const quoteCurrencyB = isKoreanA ? (stables[0] ?? 'USDT') : quoteCurrencyA;
 
-    // Render immediately with sync fallback
     const commonTickers = resolveCommonTickers(
       config.adapterA.getAvailableTickers(quoteCurrencyA),
       config.adapterB.getAvailableTickers(quoteCurrencyB),
@@ -93,7 +89,6 @@ export function MarketPairSelector() {
     };
     setPair(basePair);
 
-    // Then fetch full dynamic list in background
     fetchCommonTickers(config.adapterA, quoteCurrencyA, config.adapterB, quoteCurrencyB)
       .then(dynamicTickers => {
         if (dynamicTickers.length > commonTickers.length) {
@@ -102,13 +97,18 @@ export function MarketPairSelector() {
       });
   };
 
+  const handleCexChange = (event: SelectChangeEvent<number>) => {
+    applyCexPair(event.target.value as number);
+    // Remove focus highlight after selection
+    (document.activeElement as HTMLElement)?.blur();
+  };
+
   const handleStablecoinChange = (_: React.SyntheticEvent, index: number) => {
     const selectedStablecoin = stablecoins[index];
     const isKoreanA = cexConfig.adapterA.availableQuoteCurrencies.includes('KRW');
     const quoteCurrencyA = isKoreanA ? 'KRW' : selectedStablecoin;
     const quoteCurrencyB = isKoreanA ? selectedStablecoin : quoteCurrencyA;
 
-    // Render immediately with sync fallback
     const commonTickers = resolveCommonTickers(
       cexConfig.adapterA.getAvailableTickers(quoteCurrencyA),
       cexConfig.adapterB.getAvailableTickers(quoteCurrencyB),
@@ -123,7 +123,6 @@ export function MarketPairSelector() {
     };
     setPair(basePair);
 
-    // Then fetch full dynamic list in background
     fetchCommonTickers(cexConfig.adapterA, quoteCurrencyA, cexConfig.adapterB, quoteCurrencyB)
       .then(dynamicTickers => {
         if (dynamicTickers.length > commonTickers.length) {
@@ -134,20 +133,59 @@ export function MarketPairSelector() {
 
   return (
     <Box>
-      <Tabs
+      <Select
         value={currentCexIndex >= 0 ? currentCexIndex : 0}
         onChange={handleCexChange}
-        variant="scrollable"
-        scrollButtons={false}
+        size="small"
+        variant="outlined"
         sx={{
-          minHeight: 22,
-          '& .MuiTabs-indicator': { backgroundColor: '#00ff00', height: '1px' },
+          fontFamily: 'inherit',
+          fontSize: '0.6rem',
+          color: '#00ff00',
+          height: 18,
+          '& .MuiSelect-select': {
+            py: '1px',
+            px: '6px',
+          },
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'rgba(0, 255, 0, 0.3)',
+          },
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'rgba(0, 255, 0, 0.5)',
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'rgba(0, 255, 0, 0.3)',
+          },
+          '& .MuiSvgIcon-root': {
+            color: 'rgba(0, 255, 0, 0.5)',
+            fontSize: '0.85rem',
+          },
+        }}
+        MenuProps={{
+          PaperProps: {
+            sx: {
+              bgcolor: '#1a1a1a',
+              border: '1px solid rgba(0, 255, 0, 0.3)',
+              '& .MuiMenuItem-root': {
+                fontFamily: 'inherit',
+                fontSize: '0.7rem',
+                color: 'rgba(0, 255, 0, 0.7)',
+                '&.Mui-selected': {
+                  color: '#00ff00',
+                  bgcolor: 'rgba(0, 255, 0, 0.08)',
+                },
+                '&:hover': {
+                  bgcolor: 'rgba(0, 255, 0, 0.12)',
+                },
+              },
+            },
+          },
         }}
       >
-        {AVAILABLE_CEX_PAIRS.map((config) => (
-          <Tab key={config.label} label={config.label} sx={tabSx} />
+        {AVAILABLE_CEX_PAIRS.map((config, i) => (
+          <MenuItem key={config.label} value={i}>{config.label}</MenuItem>
         ))}
-      </Tabs>
+      </Select>
 
       {stablecoins.length > 0 && (
         <Tabs

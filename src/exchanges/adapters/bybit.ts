@@ -1,10 +1,10 @@
 import type { ExchangeAdapter, NormalizedTick } from '../types';
 import { createTickerNormalizer } from '../tickerNormalizer';
 
-/** Tickers delisted from Binance but still returned by /ticker/price with stale prices */
-const DELISTED_TICKERS = new Set(['WAVES', 'AERGO', 'ELF', 'SNT']);
+/** Tickers delisted from Bybit — placeholder for future use */
+const DELISTED_TICKERS = new Set<string>();
 
-const normalizer = createTickerNormalizer('binance');
+const normalizer = createTickerNormalizer('bybit');
 
 /** Module-level cache for REST-fetched tickers, keyed by quote currency */
 const tickerCache = new Map<string, string[]>();
@@ -12,23 +12,29 @@ const tickerCache = new Map<string, string[]>();
 /** Module-level cache for REST-fetched prices, keyed by quote currency → (base → price) */
 const restPriceCache = new Map<string, Map<string, number>>();
 
-export const binanceAdapter: ExchangeAdapter = {
-  id: 'binance',
-  name: 'Binance',
+export const bybitAdapter: ExchangeAdapter = {
+  id: 'bybit',
+  name: 'Bybit',
   availableQuoteCurrencies: ['USDT', 'USDC'],
 
-  getWebSocketUrl(): string {
-    // Use base URL — subscriptions sent via getSubscribeMessage
-    return 'wss://stream.binance.com:9443/ws';
+  heartbeatConfig: {
+    message: '{"op":"ping"}',
+    interval: 20000,
   },
 
-  getSubscribeMessage(quoteCurrency: string, tickers: string[]): string {
-    const suffix = quoteCurrency.toLowerCase();
-    const params = tickers.map(t => {
-      const exchangeTicker = normalizer.toExchange(t);
-      return `${exchangeTicker.toLowerCase()}${suffix}@trade`;
-    });
-    return JSON.stringify({ method: 'SUBSCRIBE', params, id: 1 });
+  getWebSocketUrl(): string {
+    return 'wss://stream.bybit.com/v5/public/spot';
+  },
+
+  getSubscribeMessage(quoteCurrency: string, tickers: string[]): string[] {
+    const suffix = quoteCurrency;
+    const allArgs = tickers.map(t => `tickers.${normalizer.toExchange(t)}${suffix}`);
+    // Bybit Spot: max 10 args per subscribe request
+    const messages: string[] = [];
+    for (let i = 0; i < allArgs.length; i += 10) {
+      messages.push(JSON.stringify({ op: 'subscribe', args: allArgs.slice(i, i + 10) }));
+    }
+    return messages;
   },
 
   parseMessage(data: unknown): NormalizedTick | null {
@@ -37,14 +43,15 @@ export const binanceAdapter: ExchangeAdapter = {
     try {
       const parsed = JSON.parse(data.data) as Record<string, unknown>;
 
-      // Handle combined-stream format (has .data wrapper) and direct format
-      const payload = (parsed.data ?? parsed) as { e?: string; s?: string; p?: string };
+      // Only process ticker topic messages; ignore pong / subscription ack
+      const topic = parsed.topic as string | undefined;
+      if (!topic || !topic.startsWith('tickers.')) return null;
 
-      // Only process trade events; ignore subscription ack ({ result: null })
-      if (!payload.s || !payload.p) return null;
+      const payload = parsed.data as { symbol?: string; lastPrice?: string } | undefined;
+      if (!payload?.symbol || !payload?.lastPrice) return null;
 
-      const symbol = payload.s as string;
-      const price = Number(payload.p);
+      const symbol = payload.symbol;
+      const price = Number(payload.lastPrice);
       if (isNaN(price)) return null;
 
       // Detect quote currency from symbol suffix
@@ -61,7 +68,6 @@ export const binanceAdapter: ExchangeAdapter = {
       }
 
       ticker = normalizer.toCanonical(ticker);
-
       return { ticker, price, quoteCurrency };
     } catch {
       return null;
@@ -77,15 +83,16 @@ export const binanceAdapter: ExchangeAdapter = {
     if (cached) return cached;
 
     try {
-      const res = await fetch('https://api.binance.com/api/v3/ticker/price');
-      if (!res.ok) throw new Error(`Binance REST ${res.status}`);
-      const data = (await res.json()) as { symbol: string; price: string }[];
+      const res = await fetch('https://api.bybit.com/v5/market/tickers?category=spot');
+      if (!res.ok) throw new Error(`Bybit REST ${res.status}`);
+      const json = (await res.json()) as {
+        result: { list: { symbol: string; lastPrice: string }[] };
+      };
       const tickers: string[] = [];
       const prices = new Map<string, number>();
-      for (const item of data) {
+      for (const item of json.result.list) {
         if (!item.symbol.endsWith(quoteCurrency)) continue;
-        const p = Number(item.price);
-        // Skip delisted/halted pairs (price 0) and invalid prices
+        const p = Number(item.lastPrice);
         if (!p || isNaN(p)) continue;
         const base = item.symbol.slice(0, -quoteCurrency.length);
         if (DELISTED_TICKERS.has(base)) continue;
@@ -97,7 +104,7 @@ export const binanceAdapter: ExchangeAdapter = {
       restPriceCache.set(quoteCurrency, prices);
       return tickers;
     } catch (e) {
-      console.warn('Binance REST fetch failed:', e);
+      console.warn('Bybit REST fetch failed:', e);
       return [];
     }
   },

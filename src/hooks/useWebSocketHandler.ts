@@ -10,6 +10,7 @@ export function useWebSocketHandler(
   url: string,
   processMessage: (data: unknown) => void,
   subscribe?: (sendMessage: (message: string) => void) => void,
+  heartbeat?: { message: string; interval: number },
 ) {
   const processMessageRef = useRef(processMessage);
   processMessageRef.current = processMessage;
@@ -21,6 +22,13 @@ export function useWebSocketHandler(
     shouldReconnect: () => true,
     reconnectAttempts: 10,
     reconnectInterval: 3000,
+    ...(heartbeat && {
+      heartbeat: {
+        message: heartbeat.message,
+        interval: heartbeat.interval,
+        timeout: 60000,
+      },
+    }),
   });
 
   // Send subscription message on connect and when subscribe callback changes
