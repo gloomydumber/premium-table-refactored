@@ -57,7 +57,7 @@ jobs:
           else
             RANGE="HEAD"
           fi
-          BODY=$(git log "$RANGE" --pretty=format:"- %s" --no-merges)
+          BODY=$(git log "$RANGE" --pretty=format:"- **%s**%n%n%b" --no-merges | sed '/^Co-Authored-By:/d' | sed '/^[[:space:]]*$/N;/^\n$/d')
           # Write multi-line body to GITHUB_OUTPUT via delimiter
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           echo "body<<$EOF" >> "$GITHUB_OUTPUT"

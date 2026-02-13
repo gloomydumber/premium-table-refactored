@@ -24,7 +24,9 @@
       "WebFetch(domain:bybit-exchange.github.io)",
       "WebFetch(domain:apidocs.bithumb.com)",
       "WebFetch(domain:docs.github.com)",
-      "WebFetch(domain:www.okx.com)"
+      "WebFetch(domain:www.okx.com)",
+      "Bash(git -C \"C:\\\\Users\\\\kang\\\\Desktop\\\\projects\\\\premium-table-refactored\" add src/exchanges/colors.ts src/components/ArbitrageTable/ArbitrageTable.tsx src/components/ArbitrageTable/Row/DetailRow.tsx package.json README.md HANDOFF.md)",
+      "Bash(git -C \"C:\\\\Users\\\\kang\\\\Desktop\\\\projects\\\\premium-table-refactored\" diff)"
     ]
   }
 }
