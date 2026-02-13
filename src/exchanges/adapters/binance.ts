@@ -26,7 +26,7 @@ export const binanceAdapter: ExchangeAdapter = {
     const suffix = quoteCurrency.toLowerCase();
     const params = tickers.map(t => {
       const exchangeTicker = normalizer.toExchange(t);
-      return `${exchangeTicker.toLowerCase()}${suffix}@trade`;
+      return `${exchangeTicker.toLowerCase()}${suffix}@miniTicker`;
     });
     return JSON.stringify({ method: 'SUBSCRIBE', params, id: 1 });
   },
@@ -38,13 +38,13 @@ export const binanceAdapter: ExchangeAdapter = {
       const parsed = JSON.parse(data.data) as Record<string, unknown>;
 
       // Handle combined-stream format (has .data wrapper) and direct format
-      const payload = (parsed.data ?? parsed) as { e?: string; s?: string; p?: string };
+      const payload = (parsed.data ?? parsed) as { e?: string; s?: string; c?: string };
 
-      // Only process trade events; ignore subscription ack ({ result: null })
-      if (!payload.s || !payload.p) return null;
+      // Only process miniTicker events; ignore subscription ack ({ result: null })
+      if (!payload.s || !payload.c) return null;
 
       const symbol = payload.s as string;
-      const price = Number(payload.p);
+      const price = Number(payload.c);
       if (isNaN(price)) return null;
 
       // Detect quote currency from symbol suffix

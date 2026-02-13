@@ -8,6 +8,17 @@ Last updated: 2026-02-13
 
 ## Completed This Session (2026-02-13)
 
+### Binance WS Stream: `@trade` → `@miniTicker`
+
+**Problem:** Binance prices occasionally differed from the official Binance UI. The adapter subscribed to `@trade` streams and read `payload.p` (individual trade execution price). Large orders filling across multiple price levels would briefly show intermediate fill prices. The Binance UI displays the consolidated "last price" from the ticker stream's `c` (close) field.
+
+**Fix:** Switched from `@trade` to `@miniTicker` stream, reading `payload.c` instead of `payload.p`. The `@miniTicker` stream updates every 500ms per symbol with the same "last price" the Binance UI shows.
+
+**Side benefit:** Dramatically reduced message volume — from 500-1000+ msg/sec (every trade fill) to ~2 msg/sec per ticker (500ms interval). The RAF batching in `marketData.ts` still applies but has much less work to coalesce.
+
+**Files changed:**
+- `src/exchanges/adapters/binance.ts` — Subscribe params: `@trade` → `@miniTicker`; parse field: `payload.p` → `payload.c`
+
 ### Bithumb Exchange Adapter
 
 Added Bithumb (Korean CEX) as the 4th exchange. Bithumb's API is nearly identical to Upbit — same symbol format (`KRW-BTC`), same WS Blob messages, same SIMPLE format fields (`cd`/`tp`).
@@ -504,7 +515,7 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 
 3. **`sortedTickersAtom` has referential stability.** It's wrapped in `selectAtom` with element-wise array equality. If sort order doesn't change, the same reference is returned. Removing this causes ArbitrageTable to re-render on every cross-rate tick.
 
-4. **Binance WS is subscribe-based** (not URL-encoded streams). The URL is always `wss://stream.binance.com:9443/ws`. Subscriptions are sent via `getSubscribeMessage`. `useWebSocketHandler` re-fires subscribe when the callback identity changes (tickers expand after REST fetch).
+4. **Binance WS is subscribe-based** (not URL-encoded streams). The URL is always `wss://stream.binance.com:9443/ws`. Subscriptions are sent via `getSubscribeMessage` using `@miniTicker` streams (not `@trade`). `@miniTicker` provides the consolidated last price (`c` field) matching the Binance UI, updating every 500ms. `useWebSocketHandler` re-fires subscribe when the callback identity changes (tickers expand after REST fetch).
 
 5. **Price formatting must preserve raw exchange values.** No rounding, no toFixed, no truncation. `maximumFractionDigits: 20`.
 
