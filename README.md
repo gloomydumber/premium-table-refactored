@@ -93,7 +93,9 @@ import type { MarketRow, WalletStatus } from "@gloomydumber/premium-table";
 import type { ExchangeAdapter, NormalizedTick } from "@gloomydumber/premium-table";
 
 // Exchange adapters
-import { upbitAdapter, binanceAdapter } from "@gloomydumber/premium-table";
+import {
+  upbitAdapter, binanceAdapter, bybitAdapter, bithumbAdapter, okxAdapter,
+} from "@gloomydumber/premium-table";
 ```
 
 ## Features
@@ -245,7 +247,10 @@ npm run preview      # Preview production build
 | Exchange | Quote Currencies | WebSocket | REST (ticker discovery) |
 |----------|-----------------|-----------|------------------------|
 | Upbit | KRW | `wss://api.upbit.com/websocket/v1` | `https://api.upbit.com/v1/market/all` |
-| Binance | USDT, USDC | `wss://stream.binance.com:9443/ws` | `https://api.binance.com/api/v3/exchangeInfo` |
+| Binance | USDT, USDC | `wss://stream.binance.com:9443/ws` | `https://api.binance.com/api/v3/ticker/price` |
+| Bybit | USDT, USDC | `wss://stream.bybit.com/v5/public/spot` | `https://api.bybit.com/v5/market/tickers?category=spot` |
+| Bithumb | KRW | `wss://ws-api.bithumb.com/websocket/v1` | `https://api.bithumb.com/v1/market/all` |
+| OKX | USDT, USDC | `wss://ws.okx.com:8443/ws/v5/public` | `https://www.okx.com/api/v5/market/tickers?instType=SPOT` |
 
 ## Changelog
 

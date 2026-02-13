@@ -5,7 +5,7 @@ import { marketPairAtom } from '../../store/marketPairAtom';
 import { resolveCommonTickers, fetchCommonTickers } from '../../exchanges/pair';
 import type { MarketPair, CrossRateConfig } from '../../exchanges/pair';
 import type { ExchangeAdapter } from '../../exchanges/types';
-import { upbitAdapter, binanceAdapter, bybitAdapter, bithumbAdapter } from '../../exchanges/adapters';
+import { upbitAdapter, binanceAdapter, bybitAdapter, bithumbAdapter, okxAdapter } from '../../exchanges/adapters';
 
 interface CexPairConfig {
   label: string;
@@ -16,10 +16,14 @@ interface CexPairConfig {
 const AVAILABLE_CEX_PAIRS: CexPairConfig[] = [
   { label: 'Upbit – Binance', adapterA: upbitAdapter, adapterB: binanceAdapter },
   { label: 'Upbit – Bybit', adapterA: upbitAdapter, adapterB: bybitAdapter },
+  { label: 'Upbit – OKX', adapterA: upbitAdapter, adapterB: okxAdapter },
   { label: 'Upbit – Bithumb', adapterA: upbitAdapter, adapterB: bithumbAdapter },
   { label: 'Bithumb – Binance', adapterA: bithumbAdapter, adapterB: binanceAdapter },
   { label: 'Bithumb – Bybit', adapterA: bithumbAdapter, adapterB: bybitAdapter },
+  { label: 'Bithumb – OKX', adapterA: bithumbAdapter, adapterB: okxAdapter },
   { label: 'Binance – Bybit', adapterA: binanceAdapter, adapterB: bybitAdapter },
+  { label: 'Binance – OKX', adapterA: binanceAdapter, adapterB: okxAdapter },
+  { label: 'Bybit – OKX', adapterA: bybitAdapter, adapterB: okxAdapter },
 ];
 
 function getAvailableStablecoins(adapterA: ExchangeAdapter, adapterB: ExchangeAdapter): string[] {

@@ -8,6 +8,35 @@ Last updated: 2026-02-13
 
 ## Completed This Session (2026-02-13)
 
+### OKX Exchange Adapter (0.1.14)
+
+Added OKX as the 5th exchange. OKX is a major global CEX with USDT and USDC spot markets.
+
+**OKX API details:**
+- REST: `GET https://www.okx.com/api/v5/market/tickers?instType=SPOT` → `{ data: [{ instId: "BTC-USDT", last: "56143.2", ... }] }`
+- WebSocket: `wss://ws.okx.com:8443/ws/v5/public`
+- Subscribe: `{ "op": "subscribe", "args": [{ "channel": "tickers", "instId": "BTC-USDT" }, ...] }` — batched at 25 args per message
+- Message: `{ "arg": { "channel": "tickers", "instId": "BTC-USDT" }, "data": [{ "instId": "BTC-USDT", "last": "56143.2", ... }] }`
+- Heartbeat: Send `"ping"` (plain string), receive `"pong"`. 25s interval.
+- Symbol format: Hyphen-separated `BTC-USDT` (split on `-`, index 0 for base)
+- Quote currencies: USDT, USDC
+
+**Files created:**
+- `src/exchanges/adapters/okx.ts` — Full adapter: REST fetch, WS subscribe (batched at 25), parsing, heartbeat, ticker/price caching, `createTickerNormalizer('okx')`
+
+**Files changed:**
+- `src/exchanges/tickerNormalizer.ts` — Added `okx: {}` to `EXCHANGE_ALIASES`
+- `src/exchanges/adapters/index.ts` — Added `okxAdapter` export
+- `src/components/MarketPairSelector/MarketPairSelector.tsx` — Imported `okxAdapter`, added Upbit–OKX, Bithumb–OKX, Binance–OKX, Bybit–OKX to `AVAILABLE_CEX_PAIRS`
+- `src/lib.ts` — Added `okxAdapter` export
+- `package.json` — Version `0.1.13` → `0.1.14`
+
+**Available pairs now:** Upbit–Binance, Upbit–Bybit, Upbit–OKX, Upbit–Bithumb, Bithumb–Binance, Bithumb–Bybit, Bithumb–OKX, Binance–Bybit, Binance–OKX, Bybit–OKX.
+
+---
+
+## Completed Previous Session (2026-02-13)
+
 ### Husky Pre-Push Hook + GitHub Actions Auto-Publish + Releases
 
 Automated the publish pipeline. Previously `npm publish` was manual.
@@ -582,6 +611,8 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 23. **Bybit Spot: max 10 args per subscribe request.** `getSubscribeMessage` returns `string[]` with batches of 10. The `ExchangeAdapter` interface allows `string | string[]` return type. `useExchangeWebSocket.ts` iterates the array and sends each message. Other adapters (Upbit, Binance) still return a single string. If adding an exchange with similar limits, return `string[]` from `getSubscribeMessage`.
 
 24. **Bithumb uses the same Blob→JSON path as Upbit.** Both exchanges send Blob-wrapped SIMPLE format messages with `cd`/`tp` fields. The Blob handling branch in `useExchangeWebSocket.ts` matches both `'upbit'` and `'bithumb'` adapter IDs and reuses `parseUpbitJson`. If adding another exchange with Blob messages and the same SIMPLE format, extend this check. If the format differs, add a separate branch.
+
+25. **OKX uses JSON messages (not Blob).** Falls into the generic synchronous `parseMessage` path in `useExchangeWebSocket.ts` — same as Binance/Bybit. Heartbeat is `"ping"` (plain string) at 25s. Subscribe messages batched at 25 args per message (returns `string[]`). Symbol format is hyphen-separated (`BTC-USDT`), parsed by splitting on `-`.
 
 18. **react-grid-layout is dev-only.** It's in `devDependencies`, NOT `peerDependencies`. The library build (`build:lib`) does not include it. Only `App.tsx` imports it. Do not add it to `src/lib.ts` exports or vite externals.
 

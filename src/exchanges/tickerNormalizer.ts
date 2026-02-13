@@ -15,6 +15,7 @@ const EXCHANGE_ALIASES: Record<string, Record<string, string>> = {
   bybit: {},
   upbit: {},
   bithumb: {},
+  okx: {},
 };
 
 export interface TickerNormalizer {

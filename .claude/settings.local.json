@@ -23,7 +23,8 @@
       "Bash(npm ls:*)",
       "WebFetch(domain:bybit-exchange.github.io)",
       "WebFetch(domain:apidocs.bithumb.com)",
-      "WebFetch(domain:docs.github.com)"
+      "WebFetch(domain:docs.github.com)",
+      "WebFetch(domain:www.okx.com)"
     ]
   }
 }
