@@ -22,7 +22,8 @@
       "Bash(git add:*)",
       "Bash(npm ls:*)",
       "WebFetch(domain:bybit-exchange.github.io)",
-      "WebFetch(domain:apidocs.bithumb.com)"
+      "WebFetch(domain:apidocs.bithumb.com)",
+      "WebFetch(domain:docs.github.com)"
     ]
   }
 }

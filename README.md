@@ -247,6 +247,10 @@ npm run preview      # Preview production build
 | Upbit | KRW | `wss://api.upbit.com/websocket/v1` | `https://api.upbit.com/v1/market/all` |
 | Binance | USDT, USDC | `wss://stream.binance.com:9443/ws` | `https://api.binance.com/api/v3/exchangeInfo` |
 
+## Changelog
+
+See [GitHub Releases](https://github.com/gloomydumber/premium-table-refactored/releases) for version history and release notes.
+
 ## License
 
 MIT

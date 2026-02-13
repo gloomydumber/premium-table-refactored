@@ -8,6 +8,38 @@ Last updated: 2026-02-13
 
 ## Completed This Session (2026-02-13)
 
+### Husky Pre-Push Hook + GitHub Actions Auto-Publish + Releases
+
+Automated the publish pipeline. Previously `npm publish` was manual.
+
+**What was added:**
+
+1. **Husky v9 pre-push hook** (`.husky/pre-push`) — Runs `npm run build && npm run lint` before every `git push`. If either fails, the push is rejected. Prevents broken code from reaching the remote.
+
+2. **GitHub Actions workflow** (`.github/workflows/publish.yml`) — Triggers on push to `master`. Steps:
+   - Checkout + Node 20 + `npm ci`
+   - `npm run build && npm run lint` (CI verification)
+   - Compares `package.json` version vs published registry version (`npm view`)
+   - If version changed: `npm run build:lib && npm publish` to GitHub Packages
+   - Creates a GitHub Release `v{version}` with auto-generated release notes (via `softprops/action-gh-release@v2`)
+   - If version unchanged: skips publish + release (build/lint still runs as CI gate)
+   - Auth: `NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}` (no manual secret setup needed)
+   - Permissions: `contents: write` (for releases/tags), `packages: write` (for npm publish)
+
+3. **README Changelog section** — Links to GitHub Releases page for version history.
+
+**Files created:**
+- `.husky/pre-push` — Husky v9 hook (plain shell, no shebang needed)
+- `.github/workflows/publish.yml` — CI/CD workflow
+
+**Files changed:**
+- `package.json` — Added `husky` to devDependencies, added `"prepare": "husky"` script
+- `README.md` — Added `## Changelog` section linking to GitHub Releases
+
+---
+
+## Completed Previous Session (2026-02-13)
+
 ### Binance WS Stream: `@trade` → `@miniTicker`
 
 **Problem:** Binance prices occasionally differed from the official Binance UI. The adapter subscribed to `@trade` streams and read `payload.p` (individual trade execution price). Large orders filling across multiple price levels would briefly show intermediate fill prices. The Binance UI displays the consolidated "last price" from the ticker stream's `c` (close) field.
@@ -561,7 +593,7 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 
 ## Known Issues / Future Work
 
-- **Upbit REST proxy** (`/api/upbit` in vite.config.ts) only works in dev. Production deployment needs a real proxy or backend endpoint.
+- **~~Upbit REST proxy~~:** Fixed — switched from Vite dev proxy (`/api/upbit`) to direct `https://api.upbit.com/v1/market/all` endpoint (CORS-safe). No proxy needed.
 - **Wallet status** is still randomly generated per ticker (placeholder). Needs actual server API with backend, because some exchanges require POST requests with API key and secret.
 - **No test framework** configured. Verification is manual.
 - **Sort order instability (partially mitigated):** Sort freezes on tbody hover, but rows still jump when the mouse is outside the table. User decided this is acceptable — without hover, there's no click target to protect.
@@ -570,4 +602,4 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 - **Export/share:** Export current table snapshot (pinned rows, premiums) as CSV or shareable link. Considerable for future.
 - **Alerts/notifications:** Notify when a ticker's premium crosses a user-defined threshold. Considerable for future.
 - **~~Shared ticker normalization utility~~:** Done — `src/exchanges/tickerNormalizer.ts` provides `createTickerNormalizer(exchangeId)` with centralized `EXCHANGE_ALIASES` registry. All three adapters wired up.
-- **GitHub Actions automated publish:** Currently publishing to GitHub Packages is done manually via `npm publish`. Consider adding a GitHub Actions workflow (e.g., `.github/workflows/publish.yml`) that automatically publishes on version tag push or release creation. This would replace the manual `npm publish` step and ensure consistent, reproducible builds.
+- **~~GitHub Actions automated publish~~:** Done — `.github/workflows/publish.yml` auto-publishes to GitHub Packages on version change and creates GitHub Releases. Husky pre-push hook gates pushes on build+lint.
