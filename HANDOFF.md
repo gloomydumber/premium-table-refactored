@@ -8,6 +8,13 @@ Last updated: 2026-02-13
 
 ## Completed This Session (2026-02-13)
 
+### GitHub Release notes fix
+
+`generate_release_notes: true` in `softprops/action-gh-release@v2` only produces meaningful content from merged PRs. Since this project pushes directly to master, it only showed a "Full Changelog" link. Replaced with a custom step that extracts `git log` commit messages between the previous tag and HEAD and passes them as the `body`.
+
+**Files changed:**
+- `.github/workflows/publish.yml` — Added "Build release notes from commits" step, replaced `generate_release_notes: true` with explicit `body` from git log
+
 ### OKX Exchange Adapter (0.1.14)
 
 Added OKX as the 5th exchange. OKX is a major global CEX with USDT and USDC spot markets.
