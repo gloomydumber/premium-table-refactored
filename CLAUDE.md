@@ -33,27 +33,41 @@ Refactored version of `../teamlvr-wireframe-premium-table`. Multi-exchange crypt
 User selects CEX pair + stablecoin → marketPairAtom
                                         │
                             WebSocketProvider reads it
-                           ┌────────────┴────────────┐
-                   useExchangeWebSocket(A)    useExchangeWebSocket(B)
-                           │                         │
+                            ┌───────────┼───────────────────┐
+                            │           │                   │
+                    clearMarketData   REST price seed   localStorage
+                    + initMarketData  (getCachedPrices    restore prefs
+                            │          → updatePrice)    → pinnedAtom
+                            │           │                  openRowsAtom
+                           ┌┴───────────┴┐                 mutedAtom
+                   useExchangeWS(A)  useExchangeWS(B)
+                           │              │
                    ExchangeAdapter.parseMessage() → NormalizedTick
-                           └────────────┬────────────┘
-                                        ▼
-                              marketData.ts
-                         (module-level Maps + RAF batch)
-                                        │
-                     ┌──────────────────┼──────────────────┐
-                rowMapAtom         tickersAtom        crossRateAtom
-                     │                  │             (separate path,
-                     │                  │              NOT in RAF batch)
-                     └────────┬─────────┘                  │
-                     sortedTickersAtom (derived) ──────────┘
-                              │
-                    ArbitrageTable (reads sorted list only)
-                              │
-                    MainRowByTicker ← rowAtomFamily(ticker) + crossRateAtom
-                              │          (computes premium at render time)
-                    MemoMainRow (per-row re-render, flash on price change only)
+                           │              │
+                           │    ┌─────────┘
+                           ▼    ▼
+                      marketData.ts
+                 (module-level Maps + RAF batch)
+                           │
+        ┌──────────────────┼──────────────────┐
+   rowMapAtom         tickersAtom        crossRateAtom
+        │                  │             (direct set,
+        │                  │              NOT in RAF batch)
+        └────────┬─────────┘                  │
+        _rawSortedAtom (derived) ─────────────┘
+                 │
+        _freezeAwareSortedAtom ← sortFrozenAtom (tbody hover)
+                 │
+        sortedTickersAtom (selectAtom, referential stability)
+                 │
+       ArbitrageTable (reads sorted list only)
+          │      │
+          │      ├── wsReadyStateA/B → status dots in header
+          │      └── pin/mute/expand → save to localStorage
+          │
+       MainRowByTicker ← rowAtomFamily(ticker) + crossRateAtom
+          │                (computes premium at render time)
+       MemoMainRow (per-row re-render, flash on price change only)
 ```
 
 ### "Market" vs "Exchange"
