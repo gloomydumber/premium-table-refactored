@@ -5,4 +5,5 @@ export const EXCHANGE_COLORS: Record<string, string> = {
   Bybit: '#00C4B3',
   Bithumb: '#F37321',
   OKX: '#CFD3D8',
+  Coinbase: '#FFFFFF',
 };

@@ -16,6 +16,7 @@ const EXCHANGE_ALIASES: Record<string, Record<string, string>> = {
   upbit: {},
   bithumb: {},
   okx: {},
+  coinbase: {},
 };
 
 export interface TickerNormalizer {

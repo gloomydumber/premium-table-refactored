@@ -8,6 +8,40 @@ Last updated: 2026-02-14
 
 ## Completed This Session (2026-02-14)
 
+### Coinbase Exchange Adapter (0.2.0)
+
+Added Coinbase as the 6th exchange adapter. Coinbase unifies USD and USDC into a single order book — `-USD` pairs have the deepest liquidity. The adapter subscribes to `-USD` pairs but displays as **USDC** in the UI.
+
+**Coinbase API details:**
+- REST: `GET https://api.exchange.coinbase.com/products` → `[{ id: "BTC-USD", base_currency: "BTC", quote_currency: "USD", status: "online", ... }]` (Exchange API, CORS-safe; Advanced Trade API blocks browser CORS). No prices in product list — WS `ticker_batch` snapshot seeds within 5s.
+- WebSocket: `wss://advanced-trade-ws.coinbase.com`
+- Subscribe: `{ "type": "subscribe", "product_ids": ["BTC-USD", ...], "channel": "ticker_batch" }` — all products in a single message (235 confirmed)
+- Message: `{ "channel": "ticker_batch", "events": [{ "type": "snapshot"|"update", "tickers": [{ "product_id": "BTC-USD", "price": "96432.5" }] }] }`
+- No heartbeat required
+- Channel: `ticker_batch` (5s intervals, ~47 msg/sec for 235 products)
+- Symbol format: `BTC-USD` → split on `-`, index 0 for base
+- Quote currencies: `['USDC']` (maps to `-USD` pairs internally)
+
+**Key decision:** Coinbase's USD and USDC share the same order book. Adapter exposes `USDC` as the quote currency but internally fetches/subscribes to `-USD` product IDs for deeper liquidity. `parseMessage` returns `quoteCurrency: 'USDC'` in the NormalizedTick.
+
+**Files created:**
+- `src/exchanges/adapters/coinbase.ts` — Full adapter: REST fetch (filter `quote_currency_id === 'USD'`), WS subscribe (single message, `ticker_batch` channel), parsing (`events[0].tickers[0]`), ticker/price caching, `createTickerNormalizer('coinbase')`
+
+**Files changed:**
+- `src/exchanges/tickerNormalizer.ts` — Added `coinbase: {}` to `EXCHANGE_ALIASES`
+- `src/exchanges/colors.ts` — Added `Coinbase: '#FFFFFF'` (white — official blue `#0052FF` too similar to Upbit `#0A6CFF` on dark theme)
+- `src/exchanges/adapters/index.ts` — Added `coinbaseAdapter` export
+- `src/components/MarketPairSelector/MarketPairSelector.tsx` — Imported `coinbaseAdapter`, added 5 new CEX pairs. Reordered all 15 pairs by prefix priority: Upbit → Bithumb → Binance → Bybit → Coinbase → OKX
+- `src/lib.ts` — Added `coinbaseAdapter` export
+- `package.json` — Version `0.1.15` → `0.2.0` (feat: MINOR bump)
+
+**Available pairs now (15 total):** Upbit–Bithumb, Upbit–Binance, Upbit–Bybit, Upbit–Coinbase, Upbit–OKX, Bithumb–Binance, Bithumb–Bybit, Bithumb–Coinbase, Bithumb–OKX, Binance–Bybit, Binance–Coinbase, Binance–OKX, Bybit–Coinbase, Bybit–OKX, Coinbase–OKX.
+
+**Design decisions:**
+- **CORS fix:** Coinbase Advanced Trade API (`api.coinbase.com/api/v3/brokerage/...`) blocks browser CORS. Switched to Exchange API (`api.exchange.coinbase.com/products`) which is CORS-safe. No REST price seeding — WS `ticker_batch` snapshot populates prices within 5s.
+- **Color:** Official Coinbase blue `#0052FF` too similar to Upbit `#0A6CFF` on dark background. Used white `#FFFFFF` instead — Coinbase's logo is a white "C" on blue, and white is maximally distinct from all other exchange colors.
+- **Pair order:** Prefix priority Upbit → Bithumb → Binance → Bybit → Coinbase → OKX (Korean domestic exchanges first).
+
 ### Versioning Convention Established
 
 Documented SemVer convention in `CLAUDE.md`. Commit prefix determines version bump:
