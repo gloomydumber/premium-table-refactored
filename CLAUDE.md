@@ -122,6 +122,29 @@ The original PoC lives at `../teamlvr-wireframe-premium-table`. Copy structure, 
 
 `REFACTORING_PLAN.md` in the repo root contains the full 10-phase blueprint. Read it before making architectural changes.
 
+## Versioning Convention
+
+**SemVer** with conventional commit prefixes. Currently pre-1.0 (`0.x.y`).
+
+### Commit prefix → version bump
+
+| Prefix | Bump | Example |
+|---|---|---|
+| `feat:` | **MINOR** (`0.1.x` → `0.2.0`) | New exchange adapter, new UI feature |
+| `fix:`, `perf:`, `refactor:` | **PATCH** (`0.2.0` → `0.2.1`) | Bug fix, performance improvement, code restructure |
+| `ci:`, `docs:`, `chore:` | **No bump, no publish** | Workflow changes, README updates, dependency bumps |
+
+### Rules
+
+1. **Bump version in `package.json` only when the commit prefix warrants it** (feat/fix/perf/refactor). Do NOT bump for ci/docs/chore.
+2. **One version bump per push.** If multiple feat/fix commits are batched, use the highest-priority bump (feat > fix).
+3. **The GitHub Actions workflow** auto-publishes to GitHub Packages and creates a GitHub Release only when the version in `package.json` differs from the published version. No bump = build+lint CI only.
+4. **Post-1.0:** `feat:` → MINOR, `fix:`/`perf:`/`refactor:` → PATCH, breaking API changes → MAJOR.
+
+### When to go 1.0
+
+When the public API surface is stable: `PremiumTable` props, exported types (`MarketRow`, `ExchangeAdapter`, `NormalizedTick`), and adapter exports (`upbitAdapter`, `binanceAdapter`, etc.).
+
 ## TypeScript
 
 Strict mode with `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`, `noUncheckedSideEffectImports`. Target ES2020. `src/backup/` excluded from build.

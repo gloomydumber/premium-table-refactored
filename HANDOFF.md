@@ -8,6 +8,22 @@ Last updated: 2026-02-14
 
 ## Completed This Session (2026-02-14)
 
+### Versioning Convention Established
+
+Documented SemVer convention in `CLAUDE.md`. Commit prefix determines version bump:
+- `feat:` → MINOR (`0.1.x` → `0.2.0`)
+- `fix:`, `perf:`, `refactor:` → PATCH
+- `ci:`, `docs:`, `chore:` → no bump, no publish
+
+Applied retroactively starting from next feature. Current version `0.1.15` stays as-is.
+
+### GitHub Release Notes: Include Full Commit Body
+
+Changed `publish.yml` release notes format from `%s` (subject only) to `%s` + `%b` (subject + body), with `Co-Authored-By:` lines stripped and consecutive blank lines collapsed.
+
+**Files changed:**
+- `.github/workflows/publish.yml` — `git log` format: `"- %s"` → `"- **%s**%n%n%b"` + sed filters
+
 ### Exchange Brand Colors for All 5 Exchanges (0.1.15)
 
 **Problem:** The wallet status detail row (`DetailRow`) only defined brand colors for Upbit and Binance in `EXCHANGE_COLORS`. Bybit, Bithumb, and OKX fell back to `#00ff00` (lime green), making the one-way transfer gradient indistinguishable from the "both directions" green. Table header price columns also had no exchange-specific coloring.
