@@ -41,6 +41,8 @@ Added Coinbase as the 6th exchange adapter. Coinbase unifies USD and USDC into a
 - **CORS fix:** Coinbase Advanced Trade API (`api.coinbase.com/api/v3/brokerage/...`) blocks browser CORS. Switched to Exchange API (`api.exchange.coinbase.com/products`) which is CORS-safe. No REST price seeding — WS `ticker_batch` snapshot populates prices within 5s.
 - **Color:** Official Coinbase blue `#0052FF` too similar to Upbit `#0A6CFF` on dark background. Used white `#FFFFFF` instead — Coinbase's logo is a white "C" on blue, and white is maximally distinct from all other exchange colors.
 - **Pair order:** Prefix priority Upbit → Bithumb → Binance → Bybit → Coinbase → OKX (Korean domestic exchanges first).
+- **`ticker_batch` sends one ticker per message.** Despite the `tickers` array wrapper in the JSON schema, Coinbase sends exactly one ticker per message. Verified empirically (30s live test via `../coinbaseWebsocketPoC/batch-size-test.js`: 59 messages, all `tickers.length=1`) and confirmed by official docs (example shows single-element array). The "batch" in `ticker_batch` refers to time aggregation (5s per product), not multi-product bundling. `events[0].tickers[0]` is correct and loses no data.
+- **No `getCachedPrices` / `restPriceCache`.** The Exchange API (`api.exchange.coinbase.com/products`) doesn't return prices, so there's nothing to cache. WS snapshot seeds prices within 5s. Unlike other adapters, Coinbase adapter intentionally omits `getCachedPrices`.
 
 ### Versioning Convention Established
 

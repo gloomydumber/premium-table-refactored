@@ -6,8 +6,6 @@ const normalizer = createTickerNormalizer('coinbase');
 /** Module-level cache for REST-fetched tickers, keyed by quote currency */
 const tickerCache = new Map<string, string[]>();
 
-/** Module-level cache for REST-fetched prices, keyed by quote currency → (base → price) */
-const restPriceCache = new Map<string, Map<string, number>>();
 
 export const coinbaseAdapter: ExchangeAdapter = {
   id: 'coinbase',
@@ -89,9 +87,6 @@ export const coinbaseAdapter: ExchangeAdapter = {
     }
   },
 
-  getCachedPrices(quoteCurrency: string): Map<string, number> {
-    return restPriceCache.get(quoteCurrency) ?? new Map();
-  },
 
   normalizeSymbol(rawSymbol: string): string {
     // "BTC-USD" → "BTC"
