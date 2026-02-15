@@ -94,7 +94,7 @@ import type { ExchangeAdapter, NormalizedTick } from "@gloomydumber/premium-tabl
 
 // Exchange adapters
 import {
-  upbitAdapter, binanceAdapter, bybitAdapter, bithumbAdapter, okxAdapter,
+  upbitAdapter, binanceAdapter, bybitAdapter, bithumbAdapter, okxAdapter, coinbaseAdapter,
 } from "@gloomydumber/premium-table";
 ```
 
@@ -180,9 +180,10 @@ Each exchange has a distinct brand color used in table header price columns and 
 | Exchange | Color |
 |----------|-------|
 | Upbit | Blue (`#0A6CFF`) |
+| Bithumb | Orange (`#F37321`) |
 | Binance | Gold (`#F0B90B`) |
 | Bybit | Teal (`#00C4B3`) |
-| Bithumb | Orange (`#F37321`) |
+| Coinbase | White (`#FFFFFF`) |
 | OKX | Silver (`#CFD3D8`) |
 
 ### Wallet Status Detail
@@ -259,9 +260,10 @@ npm run preview      # Preview production build
 | Exchange | Quote Currencies | WebSocket | REST (ticker discovery) |
 |----------|-----------------|-----------|------------------------|
 | Upbit | KRW | `wss://api.upbit.com/websocket/v1` | `https://api.upbit.com/v1/market/all` |
+| Bithumb | KRW | `wss://ws-api.bithumb.com/websocket/v1` | `https://api.bithumb.com/v1/market/all` |
 | Binance | USDT, USDC | `wss://stream.binance.com:9443/ws` | `https://api.binance.com/api/v3/ticker/price` |
 | Bybit | USDT, USDC | `wss://stream.bybit.com/v5/public/spot` | `https://api.bybit.com/v5/market/tickers?category=spot` |
-| Bithumb | KRW | `wss://ws-api.bithumb.com/websocket/v1` | `https://api.bithumb.com/v1/market/all` |
+| Coinbase | USDC | `wss://advanced-trade-ws.coinbase.com` | `https://api.exchange.coinbase.com/products` |
 | OKX | USDT, USDC | `wss://ws.okx.com:8443/ws/v5/public` | `https://www.okx.com/api/v5/market/tickers?instType=SPOT` |
 
 ## Changelog
