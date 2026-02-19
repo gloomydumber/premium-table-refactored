@@ -14,8 +14,8 @@ interface CexPairConfig {
 }
 
 const AVAILABLE_CEX_PAIRS: CexPairConfig[] = [
-  { label: 'Upbit – Bithumb', adapterA: upbitAdapter, adapterB: bithumbAdapter },
   { label: 'Upbit – Binance', adapterA: upbitAdapter, adapterB: binanceAdapter },
+  { label: 'Upbit – Bithumb', adapterA: upbitAdapter, adapterB: bithumbAdapter },
   { label: 'Upbit – Bybit', adapterA: upbitAdapter, adapterB: bybitAdapter },
   { label: 'Upbit – Coinbase', adapterA: upbitAdapter, adapterB: coinbaseAdapter },
   { label: 'Upbit – OKX', adapterA: upbitAdapter, adapterB: okxAdapter },
@@ -53,6 +53,25 @@ function buildCrossRateConfig(
     return { type: 'ticker', exchangeId: adapterA.id, code: `KRW-${quoteCurrencyB}` };
   }
   return { type: 'btc-derived' };
+}
+
+/** Short exchange names for the compact selected-value display */
+const SHORT_NAMES: Record<string, string> = {
+  Upbit: 'UP',
+  Binance: 'BN',
+  Bybit: 'BY',
+  Bithumb: 'BT',
+  OKX: 'OK',
+  Coinbase: 'CB',
+};
+
+function renderCexLabel(val: number | '') {
+  if (val === '') return '';
+  const cfg = AVAILABLE_CEX_PAIRS[val];
+  if (!cfg) return '';
+  const a = SHORT_NAMES[cfg.adapterA.name] ?? cfg.adapterA.name;
+  const b = SHORT_NAMES[cfg.adapterB.name] ?? cfg.adapterB.name;
+  return `${a}–${b}`;
 }
 
 const innerTabSx = {
@@ -149,6 +168,7 @@ export function MarketPairSelector() {
       <Select
         value={currentCexIndex >= 0 ? currentCexIndex : 0}
         onChange={handleCexChange}
+        renderValue={renderCexLabel}
         size="small"
         variant="outlined"
         sx={{
@@ -156,9 +176,13 @@ export function MarketPairSelector() {
           fontSize: '0.6rem',
           color: '#00ff00',
           height: 18,
+          maxWidth: '100%',
           '& .MuiSelect-select': {
             py: '1px',
             px: '6px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
           },
           '& .MuiOutlinedInput-notchedOutline': {
             borderColor: 'rgba(0, 255, 0, 0.3)',

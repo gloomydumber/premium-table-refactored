@@ -1,9 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { TableCell } from '@mui/material';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import type { MarketRow } from '../../../types/market';
 import { formatPrice, formatPremium, calculatePremiumBackgroundColor } from '../../../utils/format';
 
@@ -34,8 +30,8 @@ function MainRowInner({
   onToggleMute,
   isArbitrageable,
 }: MainRowProps) {
-  const [flashA, setFlashA] = useState<'up' | 'down' | null>(null);
-  const [flashB, setFlashB] = useState<'up' | 'down' | null>(null);
+  const cellRefA = useRef<HTMLTableCellElement>(null);
+  const cellRefB = useRef<HTMLTableCellElement>(null);
   const timeoutARef = useRef<number | null>(null);
   const timeoutBRef = useRef<number | null>(null);
   const prevPriceARef = useRef(row.priceA);
@@ -50,19 +46,23 @@ function MainRowInner({
     prevTickerRef.current = row.ticker;
   }
 
-  // Clear stale flash state when ticker changes (Virtuoso recycling)
+  // Clear stale flash when ticker changes (Virtuoso recycling)
   useEffect(() => {
-    setFlashA(null);
-    setFlashB(null);
+    if (cellRefA.current) cellRefA.current.style.color = '';
+    if (cellRefB.current) cellRefB.current.style.color = '';
     if (timeoutARef.current !== null) { clearTimeout(timeoutARef.current); timeoutARef.current = null; }
     if (timeoutBRef.current !== null) { clearTimeout(timeoutBRef.current); timeoutBRef.current = null; }
   }, [row.ticker]);
 
-  // Flash on priceA change
+  // Flash on priceA change — ref-based DOM manipulation (no re-render)
   useEffect(() => {
     if (prevPriceARef.current !== row.priceA && prevPriceARef.current > 0) {
-      setFlashA(row.priceA > prevPriceARef.current ? 'up' : 'down');
-      timeoutARef.current = window.setTimeout(() => setFlashA(null), 100);
+      const color = row.priceA > prevPriceARef.current ? '#ff0000' : '#0000ff';
+      if (cellRefA.current) cellRefA.current.style.color = color;
+      timeoutARef.current = window.setTimeout(() => {
+        if (cellRefA.current) cellRefA.current.style.color = '';
+        timeoutARef.current = null;
+      }, 100);
     }
     prevPriceARef.current = row.priceA;
     return () => {
@@ -70,11 +70,15 @@ function MainRowInner({
     };
   }, [row.priceA]);
 
-  // Flash on priceB change
+  // Flash on priceB change — ref-based DOM manipulation (no re-render)
   useEffect(() => {
     if (prevPriceBRef.current !== row.priceB && prevPriceBRef.current > 0) {
-      setFlashB(row.priceB > prevPriceBRef.current ? 'up' : 'down');
-      timeoutBRef.current = window.setTimeout(() => setFlashB(null), 100);
+      const color = row.priceB > prevPriceBRef.current ? '#ff0000' : '#0000ff';
+      if (cellRefB.current) cellRefB.current.style.color = color;
+      timeoutBRef.current = window.setTimeout(() => {
+        if (cellRefB.current) cellRefB.current.style.color = '';
+        timeoutBRef.current = null;
+      }, 100);
     }
     prevPriceBRef.current = row.priceB;
     return () => {
@@ -84,81 +88,76 @@ function MainRowInner({
 
   const premiumBg = calculatePremiumBackgroundColor(premium);
   const tickerColor = row.isMuted ? 'rgba(255, 255, 255, 0.3)' : isArbitrageable ? '#00ff00' : '#ff0000';
-  const flashColorA = flashA === 'up' ? '#ff0000' : flashA === 'down' ? '#0000ff' : undefined;
-  const flashColorB = flashB === 'up' ? '#ff0000' : flashB === 'down' ? '#0000ff' : undefined;
   const mutedOpacity = row.isMuted ? 0.3 : 1;
 
   return (
     <>
       <TableCell
-        sx={{ color: tickerColor, fontWeight: 'bold' }}
+        style={{ color: tickerColor, fontWeight: 'bold' }}
       >
         <span style={{ userSelect: 'none' }}>{row.ticker}</span>
         {!row.isMuted && (
-          <ArrowUpwardIcon
+          <span
+            className="pt-icon pt-show-on-hover"
             onClick={() => onTogglePin(row.ticker)}
-            sx={{
-              fontSize: '0.75rem',
-              ml: 0.5,
-              verticalAlign: 'middle',
-              cursor: 'pointer',
+            style={{
               color: row.isPinned ? '#00ff00' : 'rgba(255, 255, 255, 0.4)',
-              visibility: row.isPinned ? 'visible' : 'hidden',
-              'tr:hover &': { visibility: 'visible' },
+              visibility: row.isPinned ? 'visible' : undefined,
             }}
-          />
+          >
+            ↑
+          </span>
         )}
         {!row.isPinned && (
-          <ArrowDownwardIcon
+          <span
+            className="pt-icon pt-show-on-hover"
             onClick={() => onToggleMute(row.ticker)}
-            sx={{
-              fontSize: '0.75rem',
-              ml: row.isMuted ? 0.5 : 0.3,
-              verticalAlign: 'middle',
-              cursor: 'pointer',
+            style={{
+              marginLeft: row.isMuted ? 4 : 2.4,
               color: row.isMuted ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.4)',
-              visibility: row.isMuted ? 'visible' : 'hidden',
-              'tr:hover &': { visibility: 'visible' },
+              visibility: row.isMuted ? 'visible' : undefined,
             }}
-          />
+          >
+            ↓
+          </span>
         )}
         {row.isPinned && (
           isOpen ? (
-            <ExpandLessIcon
+            <span
+              className="pt-icon"
               onClick={() => onToggleExpand(row.ticker)}
-              sx={{ fontSize: '0.9rem', ml: 0.3, verticalAlign: 'middle', cursor: 'pointer', color: 'lime' }}
-            />
+              style={{ marginLeft: 2.4, color: 'lime' }}
+            >
+              ▾
+            </span>
           ) : (
-            <ExpandMoreIcon
+            <span
+              className="pt-icon pt-show-on-hover"
               onClick={() => onToggleExpand(row.ticker)}
-              sx={{
-                fontSize: '0.9rem',
-                ml: 0.3,
-                verticalAlign: 'middle',
-                cursor: 'pointer',
-                color: 'rgba(255, 255, 255, 0.4)',
-                visibility: 'hidden',
-                'tr:hover &': { visibility: 'visible' },
-              }}
-            />
+              style={{ marginLeft: 2.4, color: 'rgba(255, 255, 255, 0.4)' }}
+            >
+              ▸
+            </span>
           )
         )}
       </TableCell>
       <TableCell
+        ref={cellRefA}
         align="right"
-        sx={{ fontVariantNumeric: 'tabular-nums', color: flashColorA, transition: 'color 0.1s ease-out', opacity: mutedOpacity }}
+        style={{ fontVariantNumeric: 'tabular-nums', transition: 'color 0.1s ease-out', opacity: mutedOpacity }}
       >
         {formatPrice(row.priceA, quoteCurrencyA)}
       </TableCell>
       <TableCell
+        ref={cellRefB}
         align="right"
-        sx={{ fontVariantNumeric: 'tabular-nums', color: flashColorB, transition: 'color 0.1s ease-out', opacity: mutedOpacity }}
+        style={{ fontVariantNumeric: 'tabular-nums', transition: 'color 0.1s ease-out', opacity: mutedOpacity }}
       >
         {formatPrice(row.priceB, quoteCurrencyB)}
       </TableCell>
       <TableCell
         align="right"
-        sx={{ fontVariantNumeric: 'tabular-nums', opacity: mutedOpacity }}
+        style={{ fontVariantNumeric: 'tabular-nums', opacity: mutedOpacity }}
       >
         <span style={{ backgroundColor: premiumBg, padding: '1px 4px', borderRadius: 2 }}>
           {formatPremium(premium)}

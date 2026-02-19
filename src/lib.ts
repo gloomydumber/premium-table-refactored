@@ -1,3 +1,6 @@
+// Library styles (icons, scroller)
+import './lib-styles.css';
+
 // Main component
 export { PremiumTable } from './components/PremiumTable';
 export type { PremiumTableProps } from './components/PremiumTable';

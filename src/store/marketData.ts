@@ -92,28 +92,6 @@ let flushScheduled = false;
 let lastSetRowMap: ((update: SetStateAction<RowMap>) => void) | null = null;
 let lastSetTickers: ((update: SetStateAction<string[]>) => void) | null = null;
 
-function upsertRow(ticker: string, prev: RowMap): RowMap {
-  const existing = prev[ticker];
-  const priceA = pricesByMarket.get(marketKeyA)?.get(ticker) ?? existing?.priceA ?? 0;
-  const priceB = pricesByMarket.get(marketKeyB)?.get(ticker) ?? existing?.priceB ?? 0;
-
-  // Skip if prices unchanged — preserves object reference so selectAtom won't emit
-  if (existing && existing.priceA === priceA && existing.priceB === priceB) {
-    return prev;
-  }
-
-  const nextRow: MarketRow = {
-    id: existing?.id ?? getIdForTicker(ticker),
-    ticker,
-    priceA,
-    priceB,
-    walletStatus: existing?.walletStatus ?? getWalletStatusForTicker(ticker),
-    isPinned: existing?.isPinned ?? false,
-    isMuted: existing?.isMuted ?? false,
-  };
-  return { ...prev, [ticker]: nextRow };
-}
-
 function flush() {
   flushScheduled = false;
   if (pendingTickers.size === 0) return;
@@ -130,14 +108,37 @@ function flush() {
     });
   }
 
-  // Update row map
+  // Update row map — single-copy batch: only clones `prev` once on the first
+  // actual change, then mutates the copy for subsequent tickers (avoids O(n)
+  // intermediate shallow-copy chain).
   if (lastSetRowMap) {
     lastSetRowMap((prev) => {
-      let next = prev;
+      let next: RowMap | null = null;
       for (const ticker of tickers) {
-        next = upsertRow(ticker, next);
+        const source = next ?? prev;
+        const existing = source[ticker];
+        const priceA = pricesByMarket.get(marketKeyA)?.get(ticker) ?? existing?.priceA ?? 0;
+        const priceB = pricesByMarket.get(marketKeyB)?.get(ticker) ?? existing?.priceB ?? 0;
+
+        // Skip if prices unchanged
+        if (existing && existing.priceA === priceA && existing.priceB === priceB) {
+          continue;
+        }
+
+        const nextRow: MarketRow = {
+          id: existing?.id ?? getIdForTicker(ticker),
+          ticker,
+          priceA,
+          priceB,
+          walletStatus: existing?.walletStatus ?? getWalletStatusForTicker(ticker),
+          isPinned: existing?.isPinned ?? false,
+          isMuted: existing?.isMuted ?? false,
+        };
+
+        if (!next) next = { ...prev }; // copy once on first actual change
+        next[ticker] = nextRow;
       }
-      return next;
+      return next ?? prev;
     });
   }
 }

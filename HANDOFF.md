@@ -2,11 +2,67 @@
 
 Session handoff notes. Read this at the start of every session. Update it before closing.
 
-Last updated: 2026-02-14
+Last updated: 2026-02-19
 
 ---
 
-## Completed This Session (2026-02-14)
+## Completed This Session (2026-02-19)
+
+### Performance Refactor — Eliminate Emotion Style Leak (0.3.0)
+
+Comprehensive performance pass to eliminate UI lag when the PremiumTable widget is embedded in wts-frontend. Root causes: dynamic `sx={}` on per-row MUI components (Emotion generates new CSS classes on every price flash), per-row `useState` + `setTimeout` for flash colors (400+ extra re-renders per frame with 200+ rows), O(n) shallow-copy chain in RAF flush, and MUI SvgIcon components in the hot path.
+
+**Changes:**
+
+#### 1. MainRow.tsx — `sx={}` → `style={}` on all TableCells
+Replaced all 4 `<TableCell sx={...}>` with `<TableCell style={...}>`. Eliminates Emotion CSS class generation on every render for per-row cells.
+
+#### 2. MainRow.tsx — MUI icons → Unicode spans with CSS classes
+Replaced 4 MUI SvgIcon components (`ArrowUpwardIcon`, `ArrowDownwardIcon`, `ExpandMoreIcon`, `ExpandLessIcon`) with plain `<span>` elements using Unicode characters (`↑`, `↓`, `▸`, `▾`) and CSS classes (`.pt-icon`, `.pt-show-on-hover`). Removes 4 MUI icon imports and eliminates Emotion processing in the per-row hot path. Hover behavior now handled by `tr:hover .pt-show-on-hover` CSS rule.
+
+#### 3. MainRow.tsx — Flash `useState` → ref-based DOM manipulation
+Removed `flashA`/`flashB` `useState` hooks. Flash is now applied directly to DOM via `cellRefA`/`cellRefB` refs (`el.style.color = color`), cleared after 100ms via `setTimeout`. Existing `transition: 'color 0.1s ease-out'` handles animation. Eliminates 2 React re-renders per flash per row (400 fewer re-renders per frame with 200 active rows).
+
+#### 4. marketData.ts — Single-copy batch flush
+Replaced O(n) shallow-copy chain in `flush()` (each dirty ticker created a new copy of entire row map) with single-copy approach: clone `prev` once on first actual change, then mutate the copy for subsequent tickers. Removed dead `upsertRow` function.
+
+#### 5. grid-overrides.css — Added `.pt-icon`, `.pt-show-on-hover`, `.pt-scroller` CSS classes
+Icon base styles, hover-reveal behavior via `tr:hover .pt-show-on-hover`, and scrollbar styling for Virtuoso Scroller.
+
+#### 6. ArbitrageTable.tsx — Hoisted static `sx` to module-level constants
+Header `fixedHeaderContent` was creating new `sx` object literals on each render. Hoisted to module-level `const` objects (`headerRowSx`, `headerCellTickerSx`, `headerCellPremiumSx`, `premiumBoxSx`, `resetButtonSx`, `resetIconSx`, `wsStatusDotSx`). Reset button Tooltip `slotProps` now reuses existing `wsTooltipSlotProps`.
+
+#### 7. VirtuosoTableComponents.tsx — Scroller `sx` → `.pt-scroller` CSS class
+Moved static scrollbar styling from `sx={{...}}` to CSS class in `grid-overrides.css`.
+
+#### 8. theme.ts — Removed `@fontsource` imports from library
+Moved 3 `@fontsource/jetbrains-mono` CSS imports from `theme.ts` (library code) to `main.tsx` (demo app only). Prevents ~400KB of base64 font data from being bundled into the published CSS. Host apps like wts-frontend already load fonts separately. Moved `@fontsource/jetbrains-mono` from `dependencies` to `devDependencies`.
+
+#### 9. OKX brand color updated
+Changed OKX color from `#CFD3D8` to `#87CEEB` in `src/exchanges/colors.ts`.
+
+#### 10. MarketPairSelector — Compact dropdown for small widgets
+Added `renderValue` with abbreviated exchange names (UP, BN, BY, BT, OK, CB) so the selected value fits in small widget sizes. Added `maxWidth: '100%'` with text-overflow ellipsis as fallback. Reordered `AVAILABLE_CEX_PAIRS` to put Upbit–Binance first (before Upbit–Bithumb).
+
+**Files changed:**
+- `src/components/ArbitrageTable/Row/MainRow.tsx` — sx→style, MUI icons→spans, useState flash→ref flash
+- `src/store/marketData.ts` — Single-copy batch flush, removed dead `upsertRow`
+- `src/grid-overrides.css` — Added .pt-icon, .pt-show-on-hover, .pt-scroller classes
+- `src/components/ArbitrageTable/ArbitrageTable.tsx` — Hoisted static sx to module constants
+- `src/components/ArbitrageTable/VirtuosoTableComponents.tsx` — Scroller sx→CSS class
+- `src/components/PremiumTable/theme.ts` — Removed @fontsource imports
+- `src/main.tsx` — Added @fontsource imports (demo only)
+- `src/exchanges/colors.ts` — OKX color `#CFD3D8` → `#87CEEB`
+- `src/components/MarketPairSelector/MarketPairSelector.tsx` — Compact renderValue, reordered pairs
+- `package.json` — Version 0.2.0→0.3.1, @fontsource moved to devDependencies
+- `src/lib-styles.css` — New file: library-specific CSS (`.pt-icon`, `.pt-show-on-hover`, `.pt-scroller`) imported by `lib.ts` so it's bundled into `dist/index.css`
+- `src/lib.ts` — Added `import './lib-styles.css'` for library CSS bundle
+
+**Version note:** 0.3.0 was published without `dist/index.css` (the CSS import was only in the demo app). 0.3.1 adds `lib-styles.css` imported in `lib.ts` so Vite bundles it into `dist/index.css` (0.55KB vs old ~400KB with embedded fonts).
+
+---
+
+## Completed Previous Session (2026-02-14)
 
 ### Coinbase Exchange Adapter (0.2.0)
 
@@ -703,7 +759,9 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 
 19. **`setUpdatesPaused` exported for consumer resize integration.** Consumers embedding `<PremiumTable>` in a resizable react-grid-layout can call `setUpdatesPaused(true)` on resize start and `setUpdatesPaused(false)` on resize stop to freeze RAF flushes and buffer cross-rate updates during drag. The dev `App.tsx` uses a fixed (non-resizable) grid item as a usage reference.
 
-20. **Sort freeze is disabled during skeleton loading.** `TableBody` in `VirtuosoTableComponents.tsx` checks `tickersAtom.length > 0` before setting `sortFrozenAtom` to `true`. Without this, hovering skeleton rows would freeze an empty sort snapshot and block real data from appearing correctly.
+20. **Price flash uses ref-based DOM manipulation, not useState.** `cellRefA`/`cellRefB` refs set `el.style.color` directly — no React state, no re-render. The `style` prop on those cells does NOT include `color` (React won't overwrite it). Flash is cleared via `setTimeout` after 100ms. Do not convert back to `useState` — that was the primary cause of 400+ extra re-renders per frame.
+
+27. **Sort freeze is disabled during skeleton loading.** `TableBody` in `VirtuosoTableComponents.tsx` checks `tickersAtom.length > 0` before setting `sortFrozenAtom` to `true`. Without this, hovering skeleton rows would freeze an empty sort snapshot and block real data from appearing correctly.
 
 ---
 

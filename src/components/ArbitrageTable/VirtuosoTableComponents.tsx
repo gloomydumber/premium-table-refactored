@@ -18,23 +18,7 @@ export const virtuosoTableComponents: TableComponents<any> = {
       component={Paper}
       {...props}
       ref={ref}
-      sx={{
-        maxHeight: '100%',
-        backgroundColor: '#0a0a0a',
-        '&::-webkit-scrollbar': {
-          width: 6,
-          background: 'transparent',
-        },
-        '&::-webkit-scrollbar-thumb': {
-          background: 'rgba(0, 255, 0, 0.15)',
-          borderRadius: 3,
-        },
-        '&::-webkit-scrollbar-thumb:hover': {
-          background: 'rgba(0, 255, 0, 0.3)',
-        },
-        scrollbarWidth: 'thin',
-        scrollbarColor: 'rgba(0, 255, 0, 0.15) transparent',
-      }}
+      className="pt-scroller"
     />
   )),
   Table: (props) => (

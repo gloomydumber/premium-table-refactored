@@ -116,6 +116,29 @@ const wsTooltipSlotProps = {
   },
 } as const;
 
+const wsStatusDotSx = {
+  display: 'inline-block',
+  width: 6,
+  height: 6,
+  borderRadius: '50%',
+  ml: 0.5,
+  verticalAlign: 'middle',
+  cursor: 'default',
+} as const;
+
+const resetButtonSx = { opacity: 0.5, '&:hover': { opacity: 1 }, p: '2px' } as const;
+const resetIconSx = { fontSize: 14, color: 'rgba(0, 255, 0, 0.6)' } as const;
+
+const headerRowSx = { backgroundColor: '#0d0d0d' } as const;
+const headerCellBaseSx = { borderBottom: '1px solid rgba(0, 255, 0, 0.12)' } as const;
+const headerCellTickerSx = { ...headerCellBaseSx, width: '16%', verticalAlign: 'bottom', p: '0 8px 4px' } as const;
+const headerCellPremiumSx = { ...headerCellBaseSx, width: '24%' } as const;
+const premiumBoxSx = { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 } as const;
+
+function headerCellExchangeSx(color: string) {
+  return { ...headerCellBaseSx, width: '30%', color } as const;
+}
+
 function wsStatusDot(readyState: number, exchangeName: string) {
   const color = readyState === 1 ? '#00ff00' : readyState === 0 ? '#ffff00' : '#ff0000';
   const label = WS_STATUS_LABELS[readyState] ?? 'Unknown';
@@ -128,16 +151,7 @@ function wsStatusDot(readyState: number, exchangeName: string) {
     >
       <Box
         component="span"
-        sx={{
-          display: 'inline-block',
-          width: 6,
-          height: 6,
-          borderRadius: '50%',
-          backgroundColor: color,
-          ml: 0.5,
-          verticalAlign: 'middle',
-          cursor: 'default',
-        }}
+        sx={{ ...wsStatusDotSx, backgroundColor: color }}
       />
     </Tooltip>
   );
@@ -303,47 +317,31 @@ export function ArbitrageTable() {
       data={virtualRows}
       components={virtuosoTableComponents}
       fixedHeaderContent={() => (
-        <TableRow sx={{ backgroundColor: '#0d0d0d' }}>
-          <TableCell sx={{ width: '16%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)', verticalAlign: 'bottom', p: '0 8px 4px' }}>
+        <TableRow sx={headerRowSx}>
+          <TableCell sx={headerCellTickerSx}>
             <MarketPairSelector />
           </TableCell>
-          <TableCell align="right" sx={{ width: '30%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)', color: EXCHANGE_COLORS[exchangeNameA] ?? '#00ff00' }}>
+          <TableCell align="right" sx={headerCellExchangeSx(EXCHANGE_COLORS[exchangeNameA] ?? '#00ff00')}>
             {exchangeNameA.toUpperCase()} ({quoteCurrencyA}){wsStatusDot(readyStateA, exchangeNameA)}
           </TableCell>
-          <TableCell align="right" sx={{ width: '30%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)', color: EXCHANGE_COLORS[exchangeNameB] ?? '#00ff00' }}>
+          <TableCell align="right" sx={headerCellExchangeSx(EXCHANGE_COLORS[exchangeNameB] ?? '#00ff00')}>
             {exchangeNameB.toUpperCase()} ({quoteCurrencyB}){wsStatusDot(readyStateB, exchangeNameB)}
           </TableCell>
-          <TableCell align="right" sx={{ width: '24%', borderBottom: '1px solid rgba(0, 255, 0, 0.12)' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+          <TableCell align="right" sx={headerCellPremiumSx}>
+            <Box sx={premiumBoxSx}>
               PREMIUM
               <Tooltip
                 title="Reset pin, mute, and expand preferences for the current tab only. Other tabs are not affected."
                 arrow
                 placement="bottom"
-                slotProps={{
-                  tooltip: {
-                    sx: {
-                      bgcolor: 'rgba(0, 0, 0, 0.92)',
-                      color: 'lime',
-                      border: '1px solid rgba(0, 255, 0, 0.3)',
-                      fontSize: '0.75rem',
-                      fontFamily: '"JetBrains Mono", monospace',
-                    },
-                  },
-                  arrow: {
-                    sx: {
-                      color: 'rgba(0, 0, 0, 0.92)',
-                      '&::before': { border: '1px solid rgba(0, 255, 0, 0.3)' },
-                    },
-                  },
-                }}
+                slotProps={wsTooltipSlotProps}
               >
                 <IconButton
                   size="small"
                   onClick={handleResetPrefs}
-                  sx={{ opacity: 0.5, '&:hover': { opacity: 1 }, p: '2px' }}
+                  sx={resetButtonSx}
                 >
-                  <RestartAltIcon sx={{ fontSize: 14, color: 'rgba(0, 255, 0, 0.6)' }} />
+                  <RestartAltIcon sx={resetIconSx} />
                 </IconButton>
               </Tooltip>
             </Box>
