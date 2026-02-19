@@ -1,5 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { TableCell } from '@mui/material';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import type { MarketRow } from '../../../types/market';
 import { formatPrice, formatPremium, calculatePremiumBackgroundColor } from '../../../utils/format';
 
@@ -97,47 +101,42 @@ function MainRowInner({
       >
         <span style={{ userSelect: 'none' }}>{row.ticker}</span>
         {!row.isMuted && (
-          <span
+          <ArrowUpwardIcon
             className="pt-icon pt-show-on-hover"
             onClick={() => onTogglePin(row.ticker)}
             style={{
+              fontSize: '0.75rem',
+              marginLeft: 6,
               color: row.isPinned ? '#00ff00' : 'rgba(255, 255, 255, 0.4)',
               visibility: row.isPinned ? 'visible' : undefined,
             }}
-          >
-            ↑
-          </span>
+          />
         )}
         {!row.isPinned && (
-          <span
+          <ArrowDownwardIcon
             className="pt-icon pt-show-on-hover"
             onClick={() => onToggleMute(row.ticker)}
             style={{
-              marginLeft: row.isMuted ? 4 : 2.4,
+              fontSize: '0.75rem',
+              marginLeft: row.isMuted ? 6 : 4,
               color: row.isMuted ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.4)',
               visibility: row.isMuted ? 'visible' : undefined,
             }}
-          >
-            ↓
-          </span>
+          />
         )}
         {row.isPinned && (
           isOpen ? (
-            <span
+            <ExpandLessIcon
               className="pt-icon"
               onClick={() => onToggleExpand(row.ticker)}
-              style={{ marginLeft: 2.4, color: 'lime' }}
-            >
-              ▾
-            </span>
+              style={{ fontSize: '0.9rem', marginLeft: 2.4, color: 'lime' }}
+            />
           ) : (
-            <span
+            <ExpandMoreIcon
               className="pt-icon pt-show-on-hover"
               onClick={() => onToggleExpand(row.ticker)}
-              style={{ marginLeft: 2.4, color: 'rgba(255, 255, 255, 0.4)' }}
-            >
-              ▸
-            </span>
+              style={{ fontSize: '0.9rem', marginLeft: 2.4, color: 'rgba(255, 255, 255, 0.4)' }}
+            />
           )
         )}
       </TableCell>
