@@ -96,9 +96,15 @@ Adding a new exchange = implement one adapter file + register it + add aliases t
 
 **Critical rule:** `ArbitrageTable` reads `sortedTickersAtom` (string[]) only, never `rowMapAtom` directly.
 
-### RAF Batching (marketData.ts)
+### RAF Batching + Adaptive Flush (marketData.ts)
 
 Module-level Maps absorb every WebSocket message at O(1). `requestAnimationFrame` coalesces all pending updates into one React state flush per frame. This handles 500-1000+ messages/sec from Binance trade streams without blocking the main thread.
+
+**Adaptive flush rate:** Measures frame-to-frame gaps. When 8 consecutive frames exceed 25ms, `adaptiveInterval` increases by 32ms (capped at 100ms). A recovery timer steps back down every 2s. `setFlushInterval(ms)` allows manual override (`-1` = auto, `>=0` = fixed).
+
+**Lifecycle — two cleanup functions:**
+- `clearMarketData(setRowMap, setTickers, setCrossRate)` — pair switching. Clears data, resets adaptive state, **calls React setters** to clear the UI. Called by `WebSocketProvider` when market keys change, immediately followed by `initMarketData`.
+- `destroyMarketData()` — widget unmount. Clears data, resets adaptive state, **nulls setter refs**. No React calls (Jotai Provider is already gone). Called via `useEffect` cleanup in `WebSocketProvider`.
 
 ### Premium Calculation
 

@@ -10,9 +10,11 @@ Last updated: 2026-02-20
 
 ### Unmount Teardown for Module-Level State (0.3.5)
 
-When the PremiumTable widget was closed (unmounted), module-level state in `marketData.ts` was never cleaned up: `pricesByMarket`, `pendingTickers`, `recoveryTimer`, and stale Jotai setter references all survived unmount. The `recoveryTimer` (`setInterval`) would keep running indefinitely.
+When the PremiumTable widget was closed (unmounted), module-level state in `marketData.ts` was never cleaned up: `pricesByMarket`, `pendingTickers`, `recoveryTimer`, and stale Jotai setter references all survived unmount. WebSocket connections were already cleaned up by `react-use-websocket`'s own unmount logic, and the recovery timer is self-clearing (decays to 0 within ~8s), so this was a **code hygiene fix** rather than an observable bug — but it's correct to not leave dangling `setInterval` handles and stale references.
 
 **Fix:** Added `destroyMarketData()` — a full teardown of module-level state (timers, maps, setter refs, pause flag). `WebSocketProvider` calls it via `useEffect(() => destroyMarketData, [])` cleanup. Exported from `lib.ts` for host apps that need manual teardown.
+
+**`clearMarketData` vs `destroyMarketData`:** `clearMarketData` is for **pair switching** (widget stays mounted) — clears data and calls React setters to reset the UI. `destroyMarketData` is for **unmount** (widget removed) — clears data and nulls setter refs (no React calls since the Provider is already gone).
 
 **Files changed:**
 - `src/store/marketData.ts` — Added `destroyMarketData()` function
@@ -814,6 +816,10 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 20. **Price flash uses ref-based DOM manipulation, not useState.** `cellRefA`/`cellRefB` refs set `el.style.color` directly — no React state, no re-render. The `style` prop on those cells does NOT include `color` (React won't overwrite it). Flash is cleared via `setTimeout` after 100ms. Do not convert back to `useState` — that was the primary cause of 400+ extra re-renders per frame.
 
 27. **Sort freeze is disabled during skeleton loading.** `TableBody` in `VirtuosoTableComponents.tsx` checks `tickersAtom.length > 0` before setting `sortFrozenAtom` to `true`. Without this, hovering skeleton rows would freeze an empty sort snapshot and block real data from appearing correctly.
+
+28. **Two cleanup functions in `marketData.ts` — know which to use.** `clearMarketData(setRowMap, setTickers, setCrossRate)` is for pair switching: clears data, resets adaptive flush state, calls React setters to zero the UI, then `initMarketData` re-binds fresh setters. `destroyMarketData()` is for unmount: clears data, resets adaptive flush state, nulls setter refs (no React calls — the Jotai Provider is already destroyed). `WebSocketProvider` calls `clearMarketData` in the pair-change `useEffect` and `destroyMarketData` in a separate unmount-only `useEffect(() => destroyMarketData, [])`.
+
+29. **Adaptive flush state must be reset on both pair switch and unmount.** `clearMarketData` calls `stopRecovery()` + resets `adaptiveInterval`/`slowFrameCount`/`lastFlushTs`. `destroyMarketData` does the same. Without this, stale throttling from a previous pair or session carries over. The recovery timer is self-clearing (decays to 0 within ~8s), so a missed reset is a hygiene issue, not a functional bug.
 
 ---
 
