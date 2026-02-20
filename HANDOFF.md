@@ -2,11 +2,37 @@
 
 Session handoff notes. Read this at the start of every session. Update it before closing.
 
-Last updated: 2026-02-19
+Last updated: 2026-02-20
 
 ---
 
-## Completed This Session (2026-02-19)
+## Completed This Session (2026-02-20)
+
+### Triangle Icons + Adaptive Flush Rate (0.3.3)
+
+#### 1. MainRow.tsx — MUI icons → Unicode triangle characters
+Replaced MUI SvgIcon components (restored in 0.3.2) with plain `<span>` elements using small filled triangles: `▴` (pin), `▾` (mute/collapse), `▸` (expand). Uses `style={}` instead of `sx={}` with CSS classes `.pt-icon` and `.pt-show-on-hover` for hover behavior. Better performance than MUI icons (no Emotion overhead) and visually cleaner than the original Unicode arrows (↑, ↓).
+
+#### 2. marketData.ts — Adaptive flush rate (device auto-detection)
+Added automatic device capability detection to the RAF flush system. Measures frame-to-frame gaps via `performance.now()`. When 8 consecutive frames exceed 25ms (device struggling), `adaptiveInterval` increases by 32ms (up to 100ms max). A recovery timer every 2s steps the interval back down. Asymmetric hysteresis: quick to throttle (8 slow frames ≈ 0.2s), cautious to recover (2s per step-down).
+
+- Fast devices (Apple Silicon): `adaptiveInterval` stays 0, flush every RAF frame (~60fps)
+- Slow devices (i5-6600): auto-throttles to 32–100ms interval (~10–30fps), prices batch into bigger chunks
+- `setUpdatesPaused` resume resets counters to avoid false throttling from catch-up flush
+- Manual override: `setFlushInterval(ms)` — pass `>=0` for fixed interval, `-1` for auto mode
+
+#### 3. lib.ts — Export `setFlushInterval`
+Exported `setFlushInterval` from the library entry point for host app integration.
+
+**Files changed:**
+- `src/components/ArbitrageTable/Row/MainRow.tsx` — MUI icons → triangle spans (▴, ▾, ▸)
+- `src/store/marketData.ts` — Adaptive flush rate with device detection
+- `src/lib.ts` — Export `setFlushInterval`
+- `package.json` — Version 0.3.2→0.3.3
+
+---
+
+## Completed Previous Session (2026-02-19)
 
 ### Performance Refactor — Eliminate Emotion Style Leak (0.3.0)
 

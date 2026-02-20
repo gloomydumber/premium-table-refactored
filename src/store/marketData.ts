@@ -72,6 +72,11 @@ let pendingCrossRate: number | null = null;
 export function setUpdatesPaused(value: boolean) {
   paused = value;
   if (!value) {
+    // Reset adaptive counters — catch-up flush after resume would create
+    // a misleadingly large gap that shouldn't count as a "slow frame".
+    lastFlushTs = 0;
+    slowFrameCount = 0;
+
     // Resume: flush buffered cross-rate + pending row updates
     if (pendingCrossRate !== null) {
       if (lastSetCrossRate) lastSetCrossRate(pendingCrossRate);
@@ -84,7 +89,7 @@ export function setUpdatesPaused(value: boolean) {
 }
 
 // ---------------------------------------------------------------------------
-// RAF batch flush
+// RAF batch flush + adaptive flush rate
 // ---------------------------------------------------------------------------
 
 const pendingTickers = new Set<string>();
@@ -92,7 +97,80 @@ let flushScheduled = false;
 let lastSetRowMap: ((update: SetStateAction<RowMap>) => void) | null = null;
 let lastSetTickers: ((update: SetStateAction<string[]>) => void) | null = null;
 
+// --- Adaptive flush rate ---------------------------------------------------
+// Measures frame-to-frame gaps to detect device capability.
+// Fast device (Apple Silicon): RAF every frame (~16ms gaps) — no throttle.
+// Slow device (i5-6600): gaps stretch to 30-50ms+ — auto-throttle.
+
+const SLOW_THRESHOLD = 25;       // ms — RAF gap above this = device struggling
+const SLOW_COUNT_LIMIT = 8;      // consecutive slow frames before throttling
+const THROTTLE_STEP = 32;        // ms — increase interval per throttle step
+const MAX_FLUSH_INTERVAL = 100;  // ms — maximum throttle (10 fps)
+const RECOVER_MS = 2000;         // try stepping down every 2s
+const GAP_IGNORE = 200;          // ms — ignore gaps > this (data pause, not slow frame)
+
+let adaptiveInterval = 0;             // 0 = every RAF, >0 = minimum ms between flushes
+let manualInterval: number | null = null; // null = auto, >=0 = fixed override
+let lastFlushTs = 0;
+let slowFrameCount = 0;
+let recoveryTimer: ReturnType<typeof setInterval> | null = null;
+
+function startRecovery() {
+  if (recoveryTimer !== null || manualInterval !== null) return;
+  recoveryTimer = setInterval(() => {
+    if (adaptiveInterval > 0) {
+      adaptiveInterval = Math.max(adaptiveInterval - THROTTLE_STEP, 0);
+      slowFrameCount = 0; // fresh measurement window after step-down
+    }
+    if (adaptiveInterval <= 0) {
+      if (recoveryTimer !== null) { clearInterval(recoveryTimer); recoveryTimer = null; }
+    }
+  }, RECOVER_MS);
+}
+
+function stopRecovery() {
+  if (recoveryTimer !== null) { clearInterval(recoveryTimer); recoveryTimer = null; }
+}
+
+/**
+ * Set flush interval manually.
+ * - `ms >= 0`: fixed interval (0 = every RAF frame)
+ * - `ms < 0` (or -1): auto-adaptive mode (default)
+ */
+export function setFlushInterval(ms: number) {
+  if (ms < 0) {
+    manualInterval = null; // back to auto
+  } else {
+    manualInterval = ms;
+    stopRecovery();
+  }
+}
+
+// ---------------------------------------------------------------------------
+
 function flush() {
+  const now = performance.now();
+
+  // --- Adaptive measurement (only in auto mode, only at RAF speed) ---------
+  if (manualInterval === null && lastFlushTs > 0) {
+    const gap = now - lastFlushTs;
+    // Only measure when running at RAF speed and data is flowing continuously
+    if (adaptiveInterval === 0 && gap < GAP_IGNORE) {
+      if (gap > SLOW_THRESHOLD) {
+        slowFrameCount++;
+        if (slowFrameCount >= SLOW_COUNT_LIMIT) {
+          adaptiveInterval = Math.min(adaptiveInterval + THROTTLE_STEP, MAX_FLUSH_INTERVAL);
+          slowFrameCount = 0;
+          startRecovery();
+        }
+      } else {
+        slowFrameCount = 0;
+      }
+    }
+  }
+  lastFlushTs = now;
+
+  // --- Actual flush --------------------------------------------------------
   flushScheduled = false;
   if (pendingTickers.size === 0) return;
 
@@ -146,7 +224,22 @@ function flush() {
 function scheduleFlush() {
   if (flushScheduled || paused) return;
   flushScheduled = true;
-  requestAnimationFrame(flush);
+
+  const interval = manualInterval ?? adaptiveInterval;
+
+  if (interval <= 0) {
+    // Fast path: flush on next animation frame
+    requestAnimationFrame(flush);
+  } else {
+    // Throttled: wait until minimum interval has passed
+    const elapsed = performance.now() - lastFlushTs;
+    const wait = Math.max(0, interval - elapsed);
+    if (wait <= 0) {
+      requestAnimationFrame(flush);
+    } else {
+      setTimeout(() => requestAnimationFrame(flush), wait);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -22,4 +22,4 @@ export { createTickerNormalizer } from './exchanges/tickerNormalizer';
 export type { TickerNormalizer } from './exchanges/tickerNormalizer';
 
 // Utilities (for host app integration)
-export { setUpdatesPaused } from './store/marketData';
+export { setUpdatesPaused, setFlushInterval } from './store/marketData';
