@@ -3,7 +3,7 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import { marketPairAtom, initMarketPairAsync } from '../../store/marketPairAtom';
 import { rowMapAtom, tickersAtom, crossRateAtom, pinnedAtom, openRowsAtom, mutedAtom, sortFrozenAtom, wsReadyStateAAtom, wsReadyStateBAtom } from '../../store/marketAtoms';
 import { useExchangeWebSocket } from '../../hooks/useExchangeWebSocket';
-import { initMarketData, clearMarketData, updatePrice } from '../../store/marketData';
+import { initMarketData, clearMarketData, destroyMarketData, updatePrice } from '../../store/marketData';
 import { buildPrefsKey, loadPrefs } from '../../utils/prefsStorage';
 
 export function WebSocketProvider() {
@@ -81,6 +81,9 @@ export function WebSocketProvider() {
   // Sync WS readyState to atoms
   useEffect(() => { setWsReadyStateA(readyStateA); }, [readyStateA, setWsReadyStateA]);
   useEffect(() => { setWsReadyStateB(readyStateB); }, [readyStateB, setWsReadyStateB]);
+
+  // Teardown module-level state on unmount (widget closed)
+  useEffect(() => destroyMarketData, []);
 
   return null;
 }

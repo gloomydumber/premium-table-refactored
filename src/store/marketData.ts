@@ -296,6 +296,26 @@ export function clearMarketData(
 }
 
 /**
+ * Full teardown of module-level state. Call on unmount.
+ * Unlike clearMarketData (which resets React state via setters),
+ * this only cleans up internal timers and data — no React calls.
+ */
+export function destroyMarketData() {
+  stopRecovery();
+  pricesByMarket.clear();
+  pendingTickers.clear();
+  flushScheduled = false;
+  adaptiveInterval = 0;
+  slowFrameCount = 0;
+  lastFlushTs = 0;
+  lastSetRowMap = null;
+  lastSetTickers = null;
+  lastSetCrossRate = null;
+  paused = false;
+  pendingCrossRate = null;
+}
+
+/**
  * Update a price for a specific market. Called by the WS hook.
  */
 export function updatePrice(

@@ -8,6 +8,20 @@ Last updated: 2026-02-20
 
 ## Completed This Session (2026-02-20)
 
+### Unmount Teardown for Module-Level State (0.3.5)
+
+When the PremiumTable widget was closed (unmounted), module-level state in `marketData.ts` was never cleaned up: `pricesByMarket`, `pendingTickers`, `recoveryTimer`, and stale Jotai setter references all survived unmount. The `recoveryTimer` (`setInterval`) would keep running indefinitely.
+
+**Fix:** Added `destroyMarketData()` — a full teardown of module-level state (timers, maps, setter refs, pause flag). `WebSocketProvider` calls it via `useEffect(() => destroyMarketData, [])` cleanup. Exported from `lib.ts` for host apps that need manual teardown.
+
+**Files changed:**
+- `src/store/marketData.ts` — Added `destroyMarketData()` function
+- `src/components/WebSocketProvider/WebSocketProvider.tsx` — Unmount cleanup `useEffect`
+- `src/lib.ts` — Export `destroyMarketData`
+- `package.json` — Version 0.3.4→0.3.5
+
+---
+
 ### Adaptive Flush Cleanup Fix (0.3.4)
 
 `clearMarketData()` did not reset adaptive flush state (`adaptiveInterval`, `slowFrameCount`, `lastFlushTs`, `recoveryTimer`). When switching market pairs while throttling was active, the stale throttle interval and running recovery timer carried over to the new pair — causing unnecessary throttling on a fresh data stream and a dangling `setInterval`.
