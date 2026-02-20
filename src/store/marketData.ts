@@ -285,6 +285,11 @@ export function clearMarketData(
   pricesByMarket.clear();
   pendingTickers.clear();
   flushScheduled = false;
+  // Reset adaptive flush state so stale throttling doesn't carry over
+  stopRecovery();
+  adaptiveInterval = 0;
+  slowFrameCount = 0;
+  lastFlushTs = 0;
   setRowMap({});
   setTickers([]);
   setCrossRate(0);

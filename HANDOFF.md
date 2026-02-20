@@ -8,6 +8,18 @@ Last updated: 2026-02-20
 
 ## Completed This Session (2026-02-20)
 
+### Adaptive Flush Cleanup Fix (0.3.4)
+
+`clearMarketData()` did not reset adaptive flush state (`adaptiveInterval`, `slowFrameCount`, `lastFlushTs`, `recoveryTimer`). When switching market pairs while throttling was active, the stale throttle interval and running recovery timer carried over to the new pair — causing unnecessary throttling on a fresh data stream and a dangling `setInterval`.
+
+**Fix:** Added `stopRecovery()` + reset of `adaptiveInterval`, `slowFrameCount`, `lastFlushTs` to `clearMarketData()`.
+
+**Files changed:**
+- `src/store/marketData.ts` — Reset adaptive flush state in `clearMarketData()`
+- `package.json` — Version 0.3.3→0.3.4
+
+---
+
 ### Triangle Icons + Adaptive Flush Rate (0.3.3)
 
 #### 1. MainRow.tsx — MUI icons → Unicode triangle characters
