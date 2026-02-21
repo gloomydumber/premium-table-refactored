@@ -4,10 +4,10 @@ import { TableCell, Skeleton } from '@mui/material';
 export function SkeletonRow() {
   return (
     <>
-      <TableCell><Skeleton variant="text" sx={{ bgcolor: 'rgba(0, 255, 0, 0.06)' }} /></TableCell>
-      <TableCell><Skeleton variant="text" sx={{ bgcolor: 'rgba(0, 255, 0, 0.06)' }} /></TableCell>
-      <TableCell><Skeleton variant="text" sx={{ bgcolor: 'rgba(0, 255, 0, 0.06)' }} /></TableCell>
-      <TableCell><Skeleton variant="text" sx={{ bgcolor: 'rgba(0, 255, 0, 0.06)' }} /></TableCell>
+      <TableCell><Skeleton variant="text" sx={{ bgcolor: 'action.hover' }} /></TableCell>
+      <TableCell><Skeleton variant="text" sx={{ bgcolor: 'action.hover' }} /></TableCell>
+      <TableCell><Skeleton variant="text" sx={{ bgcolor: 'action.hover' }} /></TableCell>
+      <TableCell><Skeleton variant="text" sx={{ bgcolor: 'action.hover' }} /></TableCell>
     </>
   );
 }

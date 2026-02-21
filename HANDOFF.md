@@ -2,11 +2,58 @@
 
 Session handoff notes. Read this at the start of every session. Update it before closing.
 
-Last updated: 2026-02-20
+Last updated: 2026-02-21
 
 ---
 
-## Completed This Session (2026-02-20)
+## Completed This Session (2026-02-21)
+
+### Light Theme Support — Replace Hardcoded Dark-Mode Colors (0.4.0)
+
+**Problem:** All components had hardcoded dark-mode colors (`#00ff00`, `rgba(0,255,0,...)`, `#0a0a0a`, `#0d0d0d`, etc.) that bypassed the MUI ThemeProvider. When the host app passed a light theme via the `theme` prop, the table was unreadable — lime green text on white backgrounds, dark header backgrounds clashing with light surroundings, invisible Coinbase exchange name (`#FFFFFF` on white).
+
+**Fix:** Replaced ~40 hardcoded color values with MUI theme palette shorthands (`'primary.main'`, `'text.secondary'`, `'divider'`, `'action.hover'`, `'background.default'`, etc.) and `useTheme()` hook for inline `style={}` in hot render paths. Colors now adapt automatically to whatever theme the host provides.
+
+**Substitution patterns:**
+| Hardcoded (dark-only) | Replaced with |
+|---|---|
+| `#00ff00` / `lime` | `'primary.main'` or `theme.palette.primary.main` |
+| `rgba(0,255,0,0.4)` | `'text.secondary'` |
+| `rgba(0,255,0,0.06)` | `'divider'` or `'action.hover'` |
+| `rgba(0,255,0,0.12)` | `'action.hover'` or `'divider'` |
+| `#0d0d0d` (header bg) | `'background.default'` |
+| `#0a0a0a` (scroller bg) | Removed from CSS (MUI Paper handles via theme) |
+| `#1a1a1a` (dropdown bg) | `'background.paper'` |
+| `rgba(255,255,255,0.3/0.4)` (dim text) | `theme.palette.text.disabled` |
+| WS status `#00ff00`/`#ffff00`/`#ff0000` | `'success.main'`/`'warning.main'`/`'error.main'` |
+| Coinbase `#FFFFFF` | `#0052FF` (official brand blue) |
+
+**Unchanged colors (same in both modes):**
+- Price flash: `#ff0000` / `#0000ff` (trading convention: red up, blue down)
+- Premium background: red/blue gradient from `calculatePremiumBackgroundColor()` (trading indicator)
+- Exchange brand colors: Upbit `#0A6CFF`, Binance `#F0B90B`, Bybit `#00C4B3`, Bithumb `#F37321`, OKX `#87CEEB`
+- Tooltip background: `rgba(0,0,0,0.92)` (standard dark tooltip, works in both modes)
+
+**Performance notes:**
+- `MainRow` (hot render path): uses `useTheme()` hook + inline `style={}`. Theme values extracted at component level, no `sx` on per-row cells. `useTheme()` only triggers re-render on theme change (rare), not on price updates.
+- `DetailRow` sub-components (`StatusText`, `NetworkName`): added `useTheme()` for inline styles. These are inside expanded detail rows (not hot path).
+- Static `sx` constants at module scope: preserved for structural properties (padding, width, fontSize). Color values replaced with palette shorthands which MUI resolves at render time from ThemeProvider context — no new object creation.
+- Scrollbar CSS: changed from lime green to neutral gray (`rgba(128,128,128,0.2/0.35)`) since CSS can't access MUI theme.
+
+**Files changed:**
+- `src/exchanges/colors.ts` — Coinbase `#FFFFFF` → `#0052FF`
+- `src/components/ArbitrageTable/SkeletonRow/SkeletonRow.tsx` — Skeleton bg `rgba(0,255,0,0.06)` → `'action.hover'`
+- `src/components/ArbitrageTable/ArbitrageTable.tsx` — Tooltip, header, reset icon, WS status dot colors → theme palette shorthands; exchange fallback `#00ff00` → `'primary.main'`
+- `src/components/MarketPairSelector/MarketPairSelector.tsx` — Tab colors, Select dropdown, menu items, indicator → theme palette shorthands
+- `src/components/ArbitrageTable/Row/DetailRow.tsx` — Added `useTheme()` to StatusText/NetworkName, `#00ff00`/`#ff0000` → `success.main`/`error.main`
+- `src/components/ArbitrageTable/Row/MainRow.tsx` — Added `useTheme()`, ticker/pin/mute/expand icon colors → theme palette values
+- `src/lib-styles.css` — Removed `background-color: #0a0a0a`, scrollbar colors → neutral gray
+- `src/grid-overrides.css` — Same scrollbar/bg fix (demo app only)
+- `package.json` — Version 0.3.5 → 0.4.0
+
+---
+
+## Completed Previous Session (2026-02-20)
 
 ### Unmount Teardown for Module-Level State (0.3.5)
 
@@ -807,7 +854,7 @@ Both adapters previously hardcoded only 23 tickers. Now they fetch full lists fr
 
 25. **OKX uses JSON messages (not Blob).** Falls into the generic synchronous `parseMessage` path in `useExchangeWebSocket.ts` — same as Binance/Bybit. Heartbeat is `"ping"` (plain string) at 25s. Subscribe messages batched at 25 args per message (returns `string[]`). Symbol format is hyphen-separated (`BTC-USDT`), parsed by splitting on `-`.
 
-26. **Exchange brand colors are centralized in `src/exchanges/colors.ts`.** `EXCHANGE_COLORS` maps exchange display name → hex color. Used in `ArbitrageTable` for price column header text color and in `DetailRow` for one-way transfer gradient. When adding a new exchange, add its brand color here. Fallback is `#00ff00` (lime green).
+26. **Exchange brand colors are centralized in `src/exchanges/colors.ts`.** `EXCHANGE_COLORS` maps exchange display name → hex color. Used in `ArbitrageTable` for price column header text color and in `DetailRow` for one-way transfer gradient. When adding a new exchange, add its brand color here. Fallback is `'primary.main'` (theme-derived).
 
 18. **react-grid-layout is dev-only.** It's in `devDependencies`, NOT `peerDependencies`. The library build (`build:lib`) does not include it. Only `App.tsx` imports it. Do not add it to `src/lib.ts` exports or vite externals.
 

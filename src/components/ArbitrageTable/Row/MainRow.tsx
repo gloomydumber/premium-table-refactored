@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { TableCell } from '@mui/material';
+import { TableCell, useTheme } from '@mui/material';
 import type { MarketRow } from '../../../types/market';
 import { formatPrice, formatPremium, calculatePremiumBackgroundColor } from '../../../utils/format';
 
@@ -86,8 +86,10 @@ function MainRowInner({
     };
   }, [row.priceB]);
 
+  const theme = useTheme();
   const premiumBg = calculatePremiumBackgroundColor(premium);
-  const tickerColor = row.isMuted ? 'rgba(255, 255, 255, 0.3)' : isArbitrageable ? '#00ff00' : '#ff0000';
+  const tickerColor = row.isMuted ? theme.palette.text.disabled : isArbitrageable ? theme.palette.success.main : theme.palette.error.main;
+  const iconDimColor = theme.palette.text.disabled;
   const mutedOpacity = row.isMuted ? 0.3 : 1;
 
   return (
@@ -102,7 +104,7 @@ function MainRowInner({
             onClick={() => onTogglePin(row.ticker)}
             style={{
               marginLeft: 4,
-              color: row.isPinned ? '#00ff00' : 'rgba(255, 255, 255, 0.4)',
+              color: row.isPinned ? theme.palette.primary.main : iconDimColor,
               visibility: row.isPinned ? 'visible' : undefined,
             }}
           >
@@ -115,7 +117,7 @@ function MainRowInner({
             onClick={() => onToggleMute(row.ticker)}
             style={{
               marginLeft: row.isMuted ? 4 : 2.4,
-              color: row.isMuted ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.4)',
+              color: iconDimColor,
               visibility: row.isMuted ? 'visible' : undefined,
             }}
           >
@@ -127,7 +129,7 @@ function MainRowInner({
             <span
               className="pt-icon"
               onClick={() => onToggleExpand(row.ticker)}
-              style={{ marginLeft: 2.4, color: 'lime' }}
+              style={{ marginLeft: 2.4, color: theme.palette.primary.main }}
             >
               ▾
             </span>
@@ -135,7 +137,7 @@ function MainRowInner({
             <span
               className="pt-icon pt-show-on-hover"
               onClick={() => onToggleExpand(row.ticker)}
-              style={{ marginLeft: 2.4, color: 'rgba(255, 255, 255, 0.4)' }}
+              style={{ marginLeft: 2.4, color: iconDimColor }}
             >
               ▸
             </span>

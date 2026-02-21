@@ -82,8 +82,8 @@ const innerTabSx = {
   fontSize: '0.65rem',
   textTransform: 'uppercase' as const,
   fontFamily: 'inherit',
-  color: 'rgba(0, 255, 0, 0.4) !important',
-  '&.Mui-selected': { color: '#00ff00 !important' },
+  color: 'text.secondary',
+  '&.Mui-selected': { color: 'primary.main' },
 };
 
 export function MarketPairSelector() {
@@ -174,7 +174,7 @@ export function MarketPairSelector() {
         sx={{
           fontFamily: 'inherit',
           fontSize: '0.6rem',
-          color: '#00ff00',
+          color: 'primary.main',
           height: 18,
           maxWidth: '100%',
           '& .MuiSelect-select': {
@@ -185,34 +185,35 @@ export function MarketPairSelector() {
             whiteSpace: 'nowrap',
           },
           '& .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'rgba(0, 255, 0, 0.3)',
+            borderColor: 'divider',
           },
           '&:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'rgba(0, 255, 0, 0.5)',
+            borderColor: 'text.secondary',
           },
           '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'rgba(0, 255, 0, 0.3)',
+            borderColor: 'divider',
           },
           '& .MuiSvgIcon-root': {
-            color: 'rgba(0, 255, 0, 0.5)',
+            color: 'text.secondary',
             fontSize: '0.85rem',
           },
         }}
         MenuProps={{
           PaperProps: {
             sx: {
-              bgcolor: '#1a1a1a',
-              border: '1px solid rgba(0, 255, 0, 0.3)',
+              bgcolor: 'background.paper',
+              border: 1,
+              borderColor: 'divider',
               '& .MuiMenuItem-root': {
                 fontFamily: 'inherit',
                 fontSize: '0.7rem',
-                color: 'rgba(0, 255, 0, 0.7)',
+                color: 'text.primary',
                 '&.Mui-selected': {
-                  color: '#00ff00',
-                  bgcolor: 'rgba(0, 255, 0, 0.08)',
+                  color: 'primary.main',
+                  bgcolor: 'action.selected',
                 },
                 '&:hover': {
-                  bgcolor: 'rgba(0, 255, 0, 0.12)',
+                  bgcolor: 'action.hover',
                 },
               },
             },
@@ -231,7 +232,7 @@ export function MarketPairSelector() {
         scrollButtons={false}
         sx={{
           minHeight: 20,
-          '& .MuiTabs-indicator': { backgroundColor: '#00ff00', height: '1px' },
+          '& .MuiTabs-indicator': { backgroundColor: 'primary.main', height: '1px' },
         }}
       >
         {stablecoins.length > 0

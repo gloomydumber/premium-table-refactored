@@ -102,8 +102,9 @@ const wsTooltipSlotProps = {
   tooltip: {
     sx: {
       bgcolor: 'rgba(0, 0, 0, 0.92)',
-      color: 'lime',
-      border: '1px solid rgba(0, 255, 0, 0.3)',
+      color: 'primary.main',
+      border: 1,
+      borderColor: 'divider',
       fontSize: '0.75rem',
       fontFamily: '"JetBrains Mono", monospace',
     },
@@ -111,10 +112,10 @@ const wsTooltipSlotProps = {
   arrow: {
     sx: {
       color: 'rgba(0, 0, 0, 0.92)',
-      '&::before': { border: '1px solid rgba(0, 255, 0, 0.3)' },
+      '&::before': { border: 1, borderColor: 'divider' },
     },
   },
-} as const;
+};
 
 const wsStatusDotSx = {
   display: 'inline-block',
@@ -127,10 +128,10 @@ const wsStatusDotSx = {
 } as const;
 
 const resetButtonSx = { opacity: 0.5, '&:hover': { opacity: 1 }, p: '2px' } as const;
-const resetIconSx = { fontSize: 14, color: 'rgba(0, 255, 0, 0.6)' } as const;
+const resetIconSx = { fontSize: 14, color: 'text.secondary' } as const;
 
-const headerRowSx = { backgroundColor: '#0d0d0d' } as const;
-const headerCellBaseSx = { borderBottom: '1px solid rgba(0, 255, 0, 0.12)' } as const;
+const headerRowSx = { backgroundColor: 'background.default' } as const;
+const headerCellBaseSx = { borderBottom: 1, borderColor: 'divider' } as const;
 const headerCellTickerSx = { ...headerCellBaseSx, width: '16%', verticalAlign: 'bottom', p: '0 8px 4px' } as const;
 const headerCellPremiumSx = { ...headerCellBaseSx, width: '24%' } as const;
 const premiumBoxSx = { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 } as const;
@@ -140,7 +141,7 @@ function headerCellExchangeSx(color: string) {
 }
 
 function wsStatusDot(readyState: number, exchangeName: string) {
-  const color = readyState === 1 ? '#00ff00' : readyState === 0 ? '#ffff00' : '#ff0000';
+  const color = readyState === 1 ? 'success.main' : readyState === 0 ? 'warning.main' : 'error.main';
   const label = WS_STATUS_LABELS[readyState] ?? 'Unknown';
   return (
     <Tooltip
@@ -321,10 +322,10 @@ export function ArbitrageTable() {
           <TableCell sx={headerCellTickerSx}>
             <MarketPairSelector />
           </TableCell>
-          <TableCell align="right" sx={headerCellExchangeSx(EXCHANGE_COLORS[exchangeNameA] ?? '#00ff00')}>
+          <TableCell align="right" sx={headerCellExchangeSx(EXCHANGE_COLORS[exchangeNameA] ?? 'primary.main')}>
             {exchangeNameA.toUpperCase()} ({quoteCurrencyA}){wsStatusDot(readyStateA, exchangeNameA)}
           </TableCell>
-          <TableCell align="right" sx={headerCellExchangeSx(EXCHANGE_COLORS[exchangeNameB] ?? '#00ff00')}>
+          <TableCell align="right" sx={headerCellExchangeSx(EXCHANGE_COLORS[exchangeNameB] ?? 'primary.main')}>
             {exchangeNameB.toUpperCase()} ({quoteCurrencyB}){wsStatusDot(readyStateB, exchangeNameB)}
           </TableCell>
           <TableCell align="right" sx={headerCellPremiumSx}>

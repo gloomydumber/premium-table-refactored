@@ -5,6 +5,7 @@ import {
   Table,
   TableHead,
   TableBody,
+  useTheme,
 } from '@mui/material';
 import type { WalletStatus } from '../../../types/market';
 import { EXCHANGE_COLORS } from '../../../exchanges/colors';
@@ -16,8 +17,9 @@ interface DetailRowProps {
 }
 
 function StatusText({ ok }: { ok: boolean }) {
+  const theme = useTheme();
   return (
-    <span style={{ color: ok ? '#00ff00' : '#ff0000', fontSize: '0.7rem' }}>
+    <span style={{ color: ok ? theme.palette.success.main : theme.palette.error.main, fontSize: '0.7rem' }}>
       {ok ? 'OK' : 'OFF'}
     </span>
   );
@@ -34,19 +36,20 @@ function NetworkName({
   exchangeNameA: string;
   exchangeNameB: string;
 }) {
+  const theme = useTheme();
   const aToB = ws.marketA.withdraw && ws.marketB.deposit;
   const bToA = ws.marketB.withdraw && ws.marketA.deposit;
 
   if (aToB && bToA) {
-    return <span style={{ color: '#00ff00' }}>{name}</span>;
+    return <span style={{ color: theme.palette.success.main }}>{name}</span>;
   }
 
   if (!aToB && !bToA) {
-    return <span style={{ color: '#ff0000' }}>{name}</span>;
+    return <span style={{ color: theme.palette.error.main }}>{name}</span>;
   }
 
-  const colorA = EXCHANGE_COLORS[exchangeNameA] ?? '#00ff00';
-  const colorB = EXCHANGE_COLORS[exchangeNameB] ?? '#00ff00';
+  const colorA = EXCHANGE_COLORS[exchangeNameA] ?? theme.palette.primary.main;
+  const colorB = EXCHANGE_COLORS[exchangeNameB] ?? theme.palette.primary.main;
   const leftColor = aToB ? colorA : colorB;
   const rightColor = aToB ? colorB : colorA;
 
