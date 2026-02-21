@@ -51,6 +51,16 @@ Last updated: 2026-02-21
 - `src/grid-overrides.css` — Same scrollbar/bg fix (demo app only)
 - `package.json` — Version 0.3.5 → 0.4.0
 
+### Ticker Color Simplification (0.4.1 → 0.4.2)
+
+Ticker text previously used `success.main` (green) for arbitrageable and `error.main` (red) for non-arbitrageable. Changed to use default MUI text color (`text.primary`) for arbitrageable tickers so they match the rest of the host app's text. Non-arbitrageable tickers remain red (`#ff0000`) regardless of theme.
+
+0.4.1 accidentally removed the red color too — restored in 0.4.2.
+
+**Files changed:**
+- `src/components/ArbitrageTable/Row/MainRow.tsx` — `tickerColor`: arbitrageable → `text.primary`, non-arbitrageable → `#ff0000`
+- `package.json` — Version 0.4.0 → 0.4.2
+
 ---
 
 ## Completed Previous Session (2026-02-20)
