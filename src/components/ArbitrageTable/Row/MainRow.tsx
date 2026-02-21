@@ -28,7 +28,6 @@ function MainRowInner({
   onTogglePin,
   onToggleExpand,
   onToggleMute,
-  isArbitrageable,
 }: MainRowProps) {
   const cellRefA = useRef<HTMLTableCellElement>(null);
   const cellRefB = useRef<HTMLTableCellElement>(null);
@@ -88,7 +87,7 @@ function MainRowInner({
 
   const theme = useTheme();
   const premiumBg = calculatePremiumBackgroundColor(premium);
-  const tickerColor = row.isMuted ? theme.palette.text.disabled : isArbitrageable ? theme.palette.success.main : theme.palette.error.main;
+  const tickerColor = row.isMuted ? theme.palette.text.disabled : theme.palette.text.primary;
   const iconDimColor = theme.palette.text.disabled;
   const mutedOpacity = row.isMuted ? 0.3 : 1;
 
@@ -176,7 +175,6 @@ function areEqual(prev: MainRowProps, next: MainRowProps) {
     prev.quoteCurrencyA === next.quoteCurrencyA &&
     prev.quoteCurrencyB === next.quoteCurrencyB &&
     prev.isOpen === next.isOpen &&
-    prev.isArbitrageable === next.isArbitrageable &&
     prev.row.isMuted === next.row.isMuted &&
     // Compare formatted strings: tiny cross-rate fluctuations that don't
     // change the displayed value (±0.01%) skip re-render entirely.
