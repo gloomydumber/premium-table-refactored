@@ -2,7 +2,23 @@
 
 Session handoff notes. Read this at the start of every session. Update it before closing.
 
-Last updated: 2026-02-21
+Last updated: 2026-02-25
+
+---
+
+## Completed This Session (2026-02-25)
+
+### Fix: Virtuoso Not Detecting Container Shrink (0.5.0)
+
+**Problem:** When react-grid-layout widgets are resized smaller, `react-virtuoso`'s `TableVirtuoso` fails to re-virtualize rows that are now outside the visible area. Rows remain in the DOM and continue processing WebSocket updates, degrading performance. Expanding works fine; only shrinking is broken.
+
+**Root cause:** `TableVirtuoso` was given `style={{ height: '100%' }}` — a CSS-relative size. When the parent container shrinks via react-grid-layout, Virtuoso's internal ResizeObserver either doesn't fire or doesn't correctly recalculate the visible range from the percentage-based height.
+
+**Fix:** Added a `useContainerHeight()` hook that uses a local `ResizeObserver` to measure the container's actual pixel height. The `<TableVirtuoso>` is wrapped in a `<div ref={containerRef} style={{ height: '100%' }}>`, and the Virtuoso receives `style={{ height: containerHeight || '100%' }}` — a concrete pixel value that updates immediately on resize.
+
+**Files changed:**
+- `src/components/ArbitrageTable/ArbitrageTable.tsx` — Added `useContainerHeight()` hook, wrapper div, pixel-based height
+- `package.json` — Version bump 0.4.2 → 0.5.0
 
 ---
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAtomValue, useAtom, useSetAtom } from 'jotai';
 import { TableVirtuoso } from 'react-virtuoso';
 import { TableCell, TableRow, Box, IconButton, Tooltip } from '@mui/material';
@@ -11,6 +11,22 @@ import { virtuosoTableComponents } from './VirtuosoTableComponents';
 import { MemoMainRow, MemoDetailRow } from './Row';
 import { SkeletonRow } from './SkeletonRow';
 import { buildPrefsKey, savePrefs } from '../../utils/prefsStorage';
+
+function useContainerHeight() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const h = Math.round(entry.contentRect.height);
+      setHeight(prev => (prev !== h ? h : prev));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return { ref, height };
+}
 
 interface VirtualRow {
   type: 'main' | 'detail' | 'skeleton';
@@ -294,6 +310,8 @@ export function ArbitrageTable() {
     });
   }, [setPinned, setOpenRows, setMuted, setRowMap]);
 
+  const { ref: containerRef, height: containerHeight } = useContainerHeight();
+
   // Build flat virtual row list: skeleton rows when loading, else main + detail rows
   const virtualRows: VirtualRow[] = useMemo(() => {
     if (sortedTickers.length === 0) {
@@ -313,8 +331,9 @@ export function ArbitrageTable() {
   }, [sortedTickers, openRows]);
 
   return (
+    <div ref={containerRef} style={{ height: '100%' }}>
     <TableVirtuoso<VirtualRow>
-      style={{ height: '100%' }}
+      style={{ height: containerHeight || '100%' }}
       data={virtualRows}
       components={virtuosoTableComponents}
       fixedHeaderContent={() => (
@@ -375,5 +394,6 @@ export function ArbitrageTable() {
         );
       }}
     />
+    </div>
   );
 }
