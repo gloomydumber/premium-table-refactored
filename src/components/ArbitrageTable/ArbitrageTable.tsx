@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAtomValue, useAtom, useSetAtom } from 'jotai';
 import { TableVirtuoso } from 'react-virtuoso';
 import { TableCell, TableRow, Box, IconButton, Tooltip } from '@mui/material';
@@ -172,24 +172,11 @@ export function ArbitrageTable({ height }: { height: number }) {
   const readyStateA = useAtomValue(wsReadyStateAAtom);
   const readyStateB = useAtomValue(wsReadyStateBAtom);
 
-  // Virtuoso's internal visibleRange has a directional filter (line 1384 in
-  // react-virtuoso/dist/index.mjs) that only EXPANDS the rendered range, never
-  // SHRINKS it.  When the container height decreases, excess rows stay in the
-  // DOM.  The only reliable bypass is changing data length (line 1526), which
-  // forces a full listState recalculation.  We achieve this by bumping a React
-  // key on the TableVirtuoso after a shrink, debounced so it fires once after
-  // the resize settles (e.g. after the user finishes dragging the widget edge).
-  const prevHeightRef = useRef(height);
-  const shrinkTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const [virtuosoKey, setVirtuosoKey] = useState(0);
-  useEffect(() => {
-    clearTimeout(shrinkTimerRef.current);
-    if (height < prevHeightRef.current) {
-      shrinkTimerRef.current = setTimeout(() => setVirtuosoKey((k) => k + 1), 200);
-    }
-    prevHeightRef.current = height;
-  }, [height]);
-  useEffect(() => () => clearTimeout(shrinkTimerRef.current), []);
+  // Virtuoso's internal visibleRange has a directional filter that only expands
+  // the rendered range, never shrinks it.  Force a full remount whenever the
+  // container height changes so Virtuoso recalculates from scratch.
+  // Using height directly as the React key — every pixel change remounts, but
+  // TableVirtuoso mount is lightweight and feeds are paused during drag/resize.
 
   const exchangeNameA = pair.adapterA.name;
   const exchangeNameB = pair.adapterB.name;
@@ -333,7 +320,7 @@ export function ArbitrageTable({ height }: { height: number }) {
 
   return (
     <TableVirtuoso<VirtualRow>
-      key={virtuosoKey}
+      key={height}
       style={{ height }}
       data={virtualRows}
       components={virtuosoTableComponents}
