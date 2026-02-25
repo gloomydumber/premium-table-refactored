@@ -30,7 +30,6 @@ tr:hover .pt-show-on-hover {
 
 /* Scroller (Virtuoso TableContainer) — hidden scrollbar, scroll via mouse wheel */
 .pt-scroller {
-  max-height: 100%;
   scrollbar-width: none;             /* Firefox */
   -ms-overflow-style: none;          /* IE/Edge */
 }

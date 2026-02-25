@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAtomValue, useAtom, useSetAtom } from 'jotai';
 import { TableVirtuoso } from 'react-virtuoso';
 import { TableCell, TableRow, Box, IconButton, Tooltip } from '@mui/material';
@@ -11,31 +11,6 @@ import { virtuosoTableComponents } from './VirtuosoTableComponents';
 import { MemoMainRow, MemoDetailRow } from './Row';
 import { SkeletonRow } from './SkeletonRow';
 import { buildPrefsKey, savePrefs } from '../../utils/prefsStorage';
-
-/** Measure pixel height via callback ref + ResizeObserver. */
-function useContainerHeight() {
-  const [height, setHeight] = useState(0);
-  const roRef = useRef<ResizeObserver | null>(null);
-
-  const ref = useCallback((node: HTMLDivElement | null) => {
-    if (roRef.current) {
-      roRef.current.disconnect();
-      roRef.current = null;
-    }
-    if (node) {
-      setHeight(node.clientHeight);
-      const ro = new ResizeObserver(([entry]) => {
-        setHeight(Math.round(entry.contentRect.height));
-      });
-      ro.observe(node);
-      roRef.current = ro;
-    } else {
-      setHeight(0);
-    }
-  }, []);
-
-  return { ref, height };
-}
 
 interface VirtualRow {
   type: 'main' | 'detail' | 'skeleton';
@@ -183,7 +158,7 @@ function wsStatusDot(readyState: number, exchangeName: string) {
   );
 }
 
-export function ArbitrageTable() {
+export function ArbitrageTable({ height }: { height: number }) {
   const sortedTickers = useAtomValue(sortedTickersAtom);
   const [openRows, setOpenRows] = useAtom(openRowsAtom);
   const [pinned, setPinned] = useAtom(pinnedAtom);
@@ -337,13 +312,9 @@ export function ArbitrageTable() {
     return rows;
   }, [sortedTickers, openRows]);
 
-  const { ref: containerRef, height: containerHeight } = useContainerHeight();
-
   return (
-    <div ref={containerRef} style={{ height: '100%' }}>
-    {containerHeight > 0 && (
     <TableVirtuoso<VirtualRow>
-      style={{ height: containerHeight }}
+      style={{ height }}
       data={virtualRows}
       components={virtuosoTableComponents}
       fixedHeaderContent={() => (
@@ -404,7 +375,5 @@ export function ArbitrageTable() {
         );
       }}
     />
-    )}
-    </div>
   );
 }
