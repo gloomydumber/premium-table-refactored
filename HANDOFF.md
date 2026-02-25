@@ -8,17 +8,27 @@ Last updated: 2026-02-25
 
 ## Completed This Session (2026-02-25)
 
-### Fix: Virtuoso Not Detecting Container Shrink (0.5.0)
+### Fix: Virtuoso Shrink Issue + Hidden Scrollbar (0.5.1)
 
-**Problem:** When react-grid-layout widgets are resized smaller, `react-virtuoso`'s `TableVirtuoso` fails to re-virtualize rows that are now outside the visible area. Rows remain in the DOM and continue processing WebSocket updates, degrading performance. Expanding works fine; only shrinking is broken.
+**Problem:** v0.5.0's `useContainerHeight` + explicit pixel height approach didn't fix the shrink issue. When widget shrinks, Virtuoso DOM elements persist because the `useContainerHeight` wrapper interferes with Virtuoso's own internal ResizeObserver. Also, scrollbar should be hidden when used as a widget.
 
-**Root cause:** `TableVirtuoso` was given `style={{ height: '100%' }}` — a CSS-relative size. When the parent container shrinks via react-grid-layout, Virtuoso's internal ResizeObserver either doesn't fire or doesn't correctly recalculate the visible range from the percentage-based height.
+**Root cause:** Virtuoso needs its Scroller to have `overflow: auto` and manage its own sizing. The `useContainerHeight` wrapper + explicit height short-circuits Virtuoso's internal viewport detection.
 
-**Fix:** Added a `useContainerHeight()` hook that uses a local `ResizeObserver` to measure the container's actual pixel height. The `<TableVirtuoso>` is wrapped in a `<div ref={containerRef} style={{ height: '100%' }}>`, and the Virtuoso receives `style={{ height: containerHeight || '100%' }}` — a concrete pixel value that updates immediately on resize.
+**Fix:**
+1. **Removed `useContainerHeight` hook and wrapper div** — `TableVirtuoso` now gets `style={{ height: '100%' }}` directly. Virtuoso's own internal ResizeObserver on its Scroller handles viewport changes.
+2. **Hidden scrollbar CSS** — `.pt-scroller` changed from `scrollbar-width: thin` to `scrollbar-width: none` + `::-webkit-scrollbar { display: none }`. Scrolling still works via mouse wheel, but no visible scrollbar.
 
 **Files changed:**
-- `src/components/ArbitrageTable/ArbitrageTable.tsx` — Added `useContainerHeight()` hook, wrapper div, pixel-based height
-- `package.json` — Version bump 0.4.2 → 0.5.0
+- `src/components/ArbitrageTable/ArbitrageTable.tsx` — Removed `useContainerHeight`, removed wrapper div, direct `height: '100%'`
+- `src/lib-styles.css` — Hidden scrollbar CSS
+- `src/grid-overrides.css` — Hidden scrollbar CSS (dev harness)
+- `package.json` — Version bump 0.5.0 → 0.5.1
+
+---
+
+### Previous: Fix Attempt — Virtuoso Container Shrink (0.5.0)
+
+**Attempted fix:** `useContainerHeight()` hook with explicit pixel height. Did not resolve the issue — DOM elements still persisted after shrink. Superseded by v0.5.1.
 
 ---
 
