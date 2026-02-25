@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAtomValue, useAtom, useSetAtom } from 'jotai';
-import { TableVirtuoso } from 'react-virtuoso';
+import { TableVirtuoso, type TableVirtuosoHandle } from 'react-virtuoso';
 import { TableCell, TableRow, Box, IconButton, Tooltip } from '@mui/material';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { MarketPairSelector } from '../MarketPairSelector';
@@ -174,12 +174,18 @@ export function ArbitrageTable({ height }: { height: number }) {
 
   // Force Virtuoso to recalculate visible range when height changes.
   // Virtuoso only recalculates on scroll events, not on viewport resize alone.
-  const scrollerElRef = useRef<HTMLDivElement | null>(null);
+  // Nudge scroll position by 1px and restore to trigger a real scroll event.
+  const virtuosoRef = useRef<TableVirtuosoHandle>(null);
+  const scrollerElRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     const el = scrollerElRef.current;
     if (!el) return;
     requestAnimationFrame(() => {
-      el.dispatchEvent(new Event('scroll'));
+      const top = el.scrollTop;
+      el.scrollTop = top + 1;
+      requestAnimationFrame(() => {
+        el.scrollTop = top;
+      });
     });
   }, [height]);
 
@@ -325,7 +331,8 @@ export function ArbitrageTable({ height }: { height: number }) {
 
   return (
     <TableVirtuoso<VirtualRow>
-      scrollerRef={(el) => { scrollerElRef.current = el as HTMLDivElement; }}
+      ref={virtuosoRef}
+      scrollerRef={(el) => { scrollerElRef.current = el as HTMLElement; }}
       style={{ height }}
       data={virtualRows}
       components={virtuosoTableComponents}
