@@ -28,10 +28,11 @@ tr:hover .pt-show-on-hover {
   visibility: visible;
 }
 
-/* Scroller (Virtuoso TableContainer) — hidden scrollbar, scroll via mouse wheel */
+/* Scroller (Virtuoso scroll container) — hidden scrollbar, scroll via mouse wheel */
 .pt-scroller {
   scrollbar-width: none;             /* Firefox */
   -ms-overflow-style: none;          /* IE/Edge */
+  background-color: inherit;
 }
 .pt-scroller::-webkit-scrollbar {
   display: none;                     /* Chrome/Safari */
