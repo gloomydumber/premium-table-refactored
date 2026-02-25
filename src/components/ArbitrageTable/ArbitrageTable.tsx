@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAtomValue, useAtom, useSetAtom } from 'jotai';
-import { TableVirtuoso, type TableVirtuosoHandle } from 'react-virtuoso';
+import { TableVirtuoso } from 'react-virtuoso';
 import { TableCell, TableRow, Box, IconButton, Tooltip } from '@mui/material';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { MarketPairSelector } from '../MarketPairSelector';
@@ -172,19 +172,24 @@ export function ArbitrageTable({ height }: { height: number }) {
   const readyStateA = useAtomValue(wsReadyStateAAtom);
   const readyStateB = useAtomValue(wsReadyStateBAtom);
 
-  // Force Virtuoso to recalculate visible range when height changes.
-  // Virtuoso's internal visibleRange has a directional filter that only expands,
-  // never shrinks.  The imperative scrollTo() bypasses this: when the requested
-  // position equals the current scrollTop, Virtuoso still publishes fresh
-  // scrollContainerState with the updated viewportHeight, triggering a full
-  // range recalculation that removes excess rows after shrinking.
-  const virtuosoRef = useRef<TableVirtuosoHandle>(null);
-  const scrollerElRef = useRef<HTMLElement | null>(null);
+  // Virtuoso's internal visibleRange has a directional filter (line 1384 in
+  // react-virtuoso/dist/index.mjs) that only EXPANDS the rendered range, never
+  // SHRINKS it.  When the container height decreases, excess rows stay in the
+  // DOM.  The only reliable bypass is changing data length (line 1526), which
+  // forces a full listState recalculation.  We achieve this by bumping a React
+  // key on the TableVirtuoso after a shrink, debounced so it fires once after
+  // the resize settles (e.g. after the user finishes dragging the widget edge).
+  const prevHeightRef = useRef(height);
+  const shrinkTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const [virtuosoKey, setVirtuosoKey] = useState(0);
   useEffect(() => {
-    if (!virtuosoRef.current || !scrollerElRef.current) return;
-    const top = scrollerElRef.current.scrollTop;
-    virtuosoRef.current.scrollTo({ top });
+    clearTimeout(shrinkTimerRef.current);
+    if (height < prevHeightRef.current) {
+      shrinkTimerRef.current = setTimeout(() => setVirtuosoKey((k) => k + 1), 200);
+    }
+    prevHeightRef.current = height;
   }, [height]);
+  useEffect(() => () => clearTimeout(shrinkTimerRef.current), []);
 
   const exchangeNameA = pair.adapterA.name;
   const exchangeNameB = pair.adapterB.name;
@@ -328,8 +333,7 @@ export function ArbitrageTable({ height }: { height: number }) {
 
   return (
     <TableVirtuoso<VirtualRow>
-      ref={virtuosoRef}
-      scrollerRef={(el) => { scrollerElRef.current = el as HTMLElement; }}
+      key={virtuosoKey}
       style={{ height }}
       data={virtualRows}
       components={virtuosoTableComponents}
