@@ -8,27 +8,33 @@ Last updated: 2026-02-25
 
 ## Completed This Session (2026-02-25)
 
-### Fix: Virtuoso Shrink Issue + Hidden Scrollbar (0.5.1)
+### Fix: Virtuoso Shrink — Pixel Height + Hidden Scrollbar (0.5.2)
 
-**Problem:** v0.5.0's `useContainerHeight` + explicit pixel height approach didn't fix the shrink issue. When widget shrinks, Virtuoso DOM elements persist because the `useContainerHeight` wrapper interferes with Virtuoso's own internal ResizeObserver. Also, scrollbar should be hidden when used as a widget.
+**Problem:** v0.5.0 and v0.5.1 both failed to fix DOM element persistence after widget shrink.
 
-**Root cause:** Virtuoso needs its Scroller to have `overflow: auto` and manage its own sizing. The `useContainerHeight` wrapper + explicit height short-circuits Virtuoso's internal viewport detection.
+**Root cause:** Virtuoso needs TWO things to detect viewport changes on shrink:
+1. `overflow: auto` on the Scroller (NOT `hidden`) — Virtuoso uses this for internal viewport detection
+2. Explicit pixel height (NOT percentage) — `height: '100%'` doesn't reliably propagate through flex containers during RGL resize
 
-**Fix:**
-1. **Removed `useContainerHeight` hook and wrapper div** — `TableVirtuoso` now gets `style={{ height: '100%' }}` directly. Virtuoso's own internal ResizeObserver on its Scroller handles viewport changes.
-2. **Hidden scrollbar CSS** — `.pt-scroller` changed from `scrollbar-width: thin` to `scrollbar-width: none` + `::-webkit-scrollbar { display: none }`. Scrolling still works via mouse wheel, but no visible scrollbar.
+**v0.5.0 attempt:** Had `useContainerHeight` but Scroller may have had stale overflow. **v0.5.1 attempt:** Removed `useContainerHeight` and used `height: '100%'` — percentage heights don't trigger Virtuoso's internal recalculation reliably.
+
+**Fix (v0.5.2):**
+1. **`useContainerHeight` restored** — ResizeObserver measures container's exact pixel height
+2. **Explicit pixel height on TableVirtuoso** — `style={{ height: containerHeight }}` (concrete pixels, not percentage)
+3. **Conditional render** — `{containerHeight > 0 && <TableVirtuoso ...>}` prevents mounting before measurement
+4. **Hidden scrollbar CSS** (from v0.5.1) — `scrollbar-width: none` + `::-webkit-scrollbar { display: none }`
+5. **Scroller keeps `overflow: auto`** — MUI TableContainer default, Virtuoso can detect viewport changes
 
 **Files changed:**
-- `src/components/ArbitrageTable/ArbitrageTable.tsx` — Removed `useContainerHeight`, removed wrapper div, direct `height: '100%'`
-- `src/lib-styles.css` — Hidden scrollbar CSS
-- `src/grid-overrides.css` — Hidden scrollbar CSS (dev harness)
-- `package.json` — Version bump 0.5.0 → 0.5.1
+- `src/components/ArbitrageTable/ArbitrageTable.tsx` — Restored `useContainerHeight`, wrapper div, pixel height, conditional render
+- `package.json` — Version bump 0.5.1 → 0.5.2
 
 ---
 
-### Previous: Fix Attempt — Virtuoso Container Shrink (0.5.0)
+### Previous attempts (superseded)
 
-**Attempted fix:** `useContainerHeight()` hook with explicit pixel height. Did not resolve the issue — DOM elements still persisted after shrink. Superseded by v0.5.1.
+- **v0.5.0:** `useContainerHeight` + pixel height — didn't fix because Scroller overflow issue
+- **v0.5.1:** Removed `useContainerHeight`, used `height: '100%'` — percentage doesn't trigger Virtuoso recalculation
 
 ---
 
