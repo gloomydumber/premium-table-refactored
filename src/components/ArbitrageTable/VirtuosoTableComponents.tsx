@@ -2,8 +2,10 @@ import React, { useCallback } from 'react';
 import {
   Table,
   TableBody,
+  TableContainer,
   TableHead,
   TableRow,
+  Paper,
 } from '@mui/material';
 import { useSetAtom, useAtomValue } from 'jotai';
 import type { TableComponents } from 'react-virtuoso';
@@ -12,7 +14,12 @@ import { sortFrozenAtom, tickersAtom } from '../../store/marketAtoms';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const virtuosoTableComponents: TableComponents<any> = {
   Scroller: React.forwardRef<HTMLDivElement>((props, ref) => (
-    <div {...props} ref={ref} className="pt-scroller" />
+    <TableContainer
+      component={Paper}
+      {...props}
+      ref={ref}
+      className="pt-scroller"
+    />
   )),
   Table: (props) => (
     <Table {...props} size="small" stickyHeader sx={{ tableLayout: 'fixed' }} />
