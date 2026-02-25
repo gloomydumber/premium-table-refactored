@@ -17,20 +17,12 @@ tr:hover .pt-show-on-hover {
   visibility: visible;
 }
 
-/* Scroller (Virtuoso TableContainer) */
+/* Scroller (Virtuoso TableContainer) — hidden scrollbar, scroll via mouse wheel */
 .pt-scroller {
   max-height: 100%;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(128, 128, 128, 0.2) transparent;
+  scrollbar-width: none;             /* Firefox */
+  -ms-overflow-style: none;          /* IE/Edge */
 }
 .pt-scroller::-webkit-scrollbar {
-  width: 6px;
-  background: transparent;
-}
-.pt-scroller::-webkit-scrollbar-thumb {
-  background: rgba(128, 128, 128, 0.2);
-  border-radius: 3px;
-}
-.pt-scroller::-webkit-scrollbar-thumb:hover {
-  background: rgba(128, 128, 128, 0.35);
+  display: none;                     /* Chrome/Safari */
 }
