@@ -8,33 +8,32 @@ Last updated: 2026-02-25
 
 ## Completed This Session (2026-02-25)
 
-### Fix: Virtuoso Shrink — Pixel Height + Hidden Scrollbar (0.5.2)
+### Fix: Virtuoso Shrink Row Cleanup (0.5.12)
 
-**Problem:** v0.5.0 and v0.5.1 both failed to fix DOM element persistence after widget shrink.
+**Problem:** When the widget container shrinks (e.g., RGL drag resize), react-virtuoso's `TableVirtuoso` keeps excess rows in the DOM. Expanding works (rows added), but shrinking never removes them. A manual scroll by the user would fix it.
 
-**Root cause:** Virtuoso needs TWO things to detect viewport changes on shrink:
-1. `overflow: auto` on the Scroller (NOT `hidden`) — Virtuoso uses this for internal viewport detection
-2. Explicit pixel height (NOT percentage) — `height: '100%'` doesn't reliably propagate through flex containers during RGL resize
+**Root cause (confirmed via react-virtuoso v4.18.1 source analysis):** Virtuoso's internal `visibleRange` calculation has a **directional filter** (line 1384 in `index.mjs`) that only emits new ranges when list boundaries cross *outside* the viewport (expansion). On shrink, boundaries go *further outside*, so the filter returns `null` and the range stays unchanged. The only bypass is changing data length (line 1526: `O.length !== v` forces full `listState` recalculation).
 
-**v0.5.0 attempt:** Had `useContainerHeight` but Scroller may have had stale overflow. **v0.5.1 attempt:** Removed `useContainerHeight` and used `height: '100%'` — percentage heights don't trigger Virtuoso's internal recalculation reliably.
+**Approaches tried and failed (v0.5.3–v0.5.9):**
+- v0.5.6: Synthetic `new Event('scroll')` dispatch — Virtuoso's handler reads `scrollTop` which hasn't changed
+- v0.5.7: `scrollTop` nudge (+1px/-1px across rAFs) — directional filter still blocks
+- v0.5.8: Virtuoso `scrollTo()` imperative API — downstream `V()` dedup filters block republication
+- v0.5.9: Debounced React key on shrink (without consumer-side ResizeObserver) — `height="100%"` wasn't resolving to actual pixel changes, so the key never bumped
+- v0.5.5: Plain `<div>` Scroller instead of MUI TableContainer — no effect (reverted in v0.5.12)
+- Various CSS changes (hidden scrollbar, `max-height` removal) — no effect (reverted in v0.5.12)
 
-**Fix (v0.5.2):**
-1. **`useContainerHeight` restored** — ResizeObserver measures container's exact pixel height
-2. **Explicit pixel height on TableVirtuoso** — `style={{ height: containerHeight }}` (concrete pixels, not percentage)
-3. **Conditional render** — `{containerHeight > 0 && <TableVirtuoso ...>}` prevents mounting before measurement
-4. **Hidden scrollbar CSS** (from v0.5.1) — `scrollbar-width: none` + `::-webkit-scrollbar { display: none }`
-5. **Scroller keeps `overflow: auto`** — MUI TableContainer default, Virtuoso can detect viewport changes
+**What works (v0.5.10–v0.5.12):** Two-part fix:
+1. **Consumer passes pixel height** — wts-frontend's `PremiumTableWidget` measures its container via ResizeObserver and passes a pixel value (e.g., `height={300}`) instead of `height="100%"`. This ensures height changes propagate reliably.
+2. **Library debounces React key on shrink** — `ArbitrageTable` detects height decrease, waits 150ms for resize to settle, then bumps `key` on `TableVirtuoso`, forcing a fresh mount that calculates the correct visible range.
 
-**Files changed:**
-- `src/components/ArbitrageTable/ArbitrageTable.tsx` — Restored `useContainerHeight`, wrapper div, pixel height, conditional render
-- `package.json` — Version bump 0.5.1 → 0.5.2
+**Effective changes retained in v0.5.12:**
+- `PremiumTable.tsx` — `useContainerHeight` callback ref + ResizeObserver, passes pixel height to ArbitrageTable
+- `ArbitrageTable.tsx` — `height` prop, `key={virtuosoKey}` debounced on shrink, `style={{ height }}`
 
----
-
-### Previous attempts (superseded)
-
-- **v0.5.0:** `useContainerHeight` + pixel height — didn't fix because Scroller overflow issue
-- **v0.5.1:** Removed `useContainerHeight`, used `height: '100%'` — percentage doesn't trigger Virtuoso recalculation
+**Reverted in v0.5.12 (ineffective):**
+- `VirtuosoTableComponents.tsx` — Restored MUI `TableContainer/Paper` Scroller
+- `lib-styles.css` — Restored original scrollbar styles + `max-height: 100%`
+- `grid-overrides.css` — Restored original scrollbar styles + `max-height: 100%`
 
 ---
 
