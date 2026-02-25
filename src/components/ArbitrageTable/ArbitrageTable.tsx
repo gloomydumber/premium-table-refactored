@@ -172,6 +172,17 @@ export function ArbitrageTable({ height }: { height: number }) {
   const readyStateA = useAtomValue(wsReadyStateAAtom);
   const readyStateB = useAtomValue(wsReadyStateBAtom);
 
+  // Force Virtuoso to recalculate visible range when height changes.
+  // Virtuoso only recalculates on scroll events, not on viewport resize alone.
+  const scrollerElRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = scrollerElRef.current;
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.dispatchEvent(new Event('scroll'));
+    });
+  }, [height]);
+
   const exchangeNameA = pair.adapterA.name;
   const exchangeNameB = pair.adapterB.name;
   const quoteCurrencyA = pair.marketA.quoteCurrency;
@@ -314,6 +325,7 @@ export function ArbitrageTable({ height }: { height: number }) {
 
   return (
     <TableVirtuoso<VirtualRow>
+      scrollerRef={(el) => { scrollerElRef.current = el as HTMLDivElement; }}
       style={{ height }}
       data={virtualRows}
       components={virtuosoTableComponents}
