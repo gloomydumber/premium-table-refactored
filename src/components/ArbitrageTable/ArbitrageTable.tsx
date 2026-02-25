@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAtomValue, useAtom, useSetAtom } from 'jotai';
 import { TableVirtuoso } from 'react-virtuoso';
 import { TableCell, TableRow, Box, IconButton, Tooltip } from '@mui/material';
@@ -173,10 +173,21 @@ export function ArbitrageTable({ height }: { height: number }) {
   const readyStateB = useAtomValue(wsReadyStateBAtom);
 
   // Virtuoso's internal visibleRange has a directional filter that only expands
-  // the rendered range, never shrinks it.  Force a full remount whenever the
-  // container height changes so Virtuoso recalculates from scratch.
-  // Using height directly as the React key — every pixel change remounts, but
-  // TableVirtuoso mount is lightweight and feeds are paused during drag/resize.
+  // the rendered range, never shrinks it.  On shrink, debounce a React key bump
+  // to force a single remount after resize settles.  During resize the table
+  // stays visible (style={{ height }} handles smooth sizing); only the final
+  // cleanup remount flashes briefly when excess rows are removed.
+  const prevHeightRef = useRef(height);
+  const shrinkTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const [virtuosoKey, setVirtuosoKey] = useState(0);
+  useEffect(() => {
+    clearTimeout(shrinkTimerRef.current);
+    if (height < prevHeightRef.current) {
+      shrinkTimerRef.current = setTimeout(() => setVirtuosoKey((k) => k + 1), 150);
+    }
+    prevHeightRef.current = height;
+  }, [height]);
+  useEffect(() => () => clearTimeout(shrinkTimerRef.current), []);
 
   const exchangeNameA = pair.adapterA.name;
   const exchangeNameB = pair.adapterB.name;
@@ -320,7 +331,7 @@ export function ArbitrageTable({ height }: { height: number }) {
 
   return (
     <TableVirtuoso<VirtualRow>
-      key={height}
+      key={virtuosoKey}
       style={{ height }}
       data={virtualRows}
       components={virtuosoTableComponents}
