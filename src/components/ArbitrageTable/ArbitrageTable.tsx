@@ -173,20 +173,17 @@ export function ArbitrageTable({ height }: { height: number }) {
   const readyStateB = useAtomValue(wsReadyStateBAtom);
 
   // Force Virtuoso to recalculate visible range when height changes.
-  // Virtuoso only recalculates on scroll events, not on viewport resize alone.
-  // Nudge scroll position by 1px and restore to trigger a real scroll event.
+  // Virtuoso's internal visibleRange has a directional filter that only expands,
+  // never shrinks.  The imperative scrollTo() bypasses this: when the requested
+  // position equals the current scrollTop, Virtuoso still publishes fresh
+  // scrollContainerState with the updated viewportHeight, triggering a full
+  // range recalculation that removes excess rows after shrinking.
   const virtuosoRef = useRef<TableVirtuosoHandle>(null);
   const scrollerElRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
-    const el = scrollerElRef.current;
-    if (!el) return;
-    requestAnimationFrame(() => {
-      const top = el.scrollTop;
-      el.scrollTop = top + 1;
-      requestAnimationFrame(() => {
-        el.scrollTop = top;
-      });
-    });
+    if (!virtuosoRef.current || !scrollerElRef.current) return;
+    const top = scrollerElRef.current.scrollTop;
+    virtuosoRef.current.scrollTo({ top });
   }, [height]);
 
   const exchangeNameA = pair.adapterA.name;
