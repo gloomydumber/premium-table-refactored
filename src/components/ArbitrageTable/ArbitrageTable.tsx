@@ -12,19 +12,28 @@ import { MemoMainRow, MemoDetailRow } from './Row';
 import { SkeletonRow } from './SkeletonRow';
 import { buildPrefsKey, savePrefs } from '../../utils/prefsStorage';
 
-/** Measure a container's pixel height via ResizeObserver. */
+/** Measure pixel height via callback ref + ResizeObserver. */
 function useContainerHeight() {
-  const ref = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const ro = new ResizeObserver(([entry]) => {
-      setHeight(Math.round(entry.contentRect.height));
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
+  const roRef = useRef<ResizeObserver | null>(null);
+
+  const ref = useCallback((node: HTMLDivElement | null) => {
+    if (roRef.current) {
+      roRef.current.disconnect();
+      roRef.current = null;
+    }
+    if (node) {
+      setHeight(node.clientHeight);
+      const ro = new ResizeObserver(([entry]) => {
+        setHeight(Math.round(entry.contentRect.height));
+      });
+      ro.observe(node);
+      roRef.current = ro;
+    } else {
+      setHeight(0);
+    }
   }, []);
+
   return { ref, height };
 }
 
