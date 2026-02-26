@@ -17,20 +17,7 @@ tr:hover .pt-show-on-hover {
   visibility: visible;
 }
 
-/* Scroller (Virtuoso TableContainer) */
+/* Scroller (Virtuoso TableContainer) — scrollbar styling deferred to host app */
 .pt-scroller {
   max-height: 100%;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(128, 128, 128, 0.2) transparent;
-}
-.pt-scroller::-webkit-scrollbar {
-  width: 6px;
-  background: transparent;
-}
-.pt-scroller::-webkit-scrollbar-thumb {
-  background: rgba(128, 128, 128, 0.2);
-  border-radius: 3px;
-}
-.pt-scroller::-webkit-scrollbar-thumb:hover {
-  background: rgba(128, 128, 128, 0.35);
 }

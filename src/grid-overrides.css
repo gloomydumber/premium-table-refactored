@@ -28,20 +28,24 @@ tr:hover .pt-show-on-hover {
   visibility: visible;
 }
 
-/* Scroller (Virtuoso TableContainer) */
-.pt-scroller {
-  max-height: 100%;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(128, 128, 128, 0.2) transparent;
-}
-.pt-scroller::-webkit-scrollbar {
+/* Global scrollbar — matches wts-frontend GlobalStyles (dark mode) */
+*::-webkit-scrollbar {
   width: 6px;
   background: transparent;
 }
-.pt-scroller::-webkit-scrollbar-thumb {
-  background: rgba(128, 128, 128, 0.2);
+*::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 0, 0.15);
   border-radius: 3px;
 }
-.pt-scroller::-webkit-scrollbar-thumb:hover {
-  background: rgba(128, 128, 128, 0.35);
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 0, 0.3);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 255, 0, 0.15) transparent;
+}
+
+/* Scroller (Virtuoso TableContainer) */
+.pt-scroller {
+  max-height: 100%;
 }

@@ -2,11 +2,26 @@
 
 Session handoff notes. Read this at the start of every session. Update it before closing.
 
-Last updated: 2026-02-25
+Last updated: 2026-02-26
 
 ---
 
-## Completed This Session (2026-02-25)
+## Completed This Session (2026-02-26)
+
+### Fix: Scrollbar Styling — Defer to Host App (0.5.13)
+
+**Problem:** premium-table's `.pt-scroller` had its own hardcoded gray scrollbar styles (`rgba(128,128,128,0.2)`) which overrode the host app's global `*::-webkit-scrollbar` styles due to higher CSS specificity. In wts-frontend, this meant the premium table widget had gray scrollbars instead of matching the app's theme-aware green scrollbars.
+
+**Fix:** Removed scrollbar color/width rules from `.pt-scroller` in `lib-styles.css` (library CSS). The library now only sets `max-height: 100%` on `.pt-scroller`, deferring all scrollbar styling to the host app. Added wts-frontend-matching global scrollbar styles (`rgba(0,255,0,0.15)` green, 6px, thin) to `grid-overrides.css` (demo app only) so standalone usage matches.
+
+**Files changed:**
+- `src/lib-styles.css` — Removed scrollbar-specific CSS from `.pt-scroller`, kept `max-height: 100%`
+- `src/grid-overrides.css` — Removed `.pt-scroller` scrollbar overrides, added global `*` scrollbar styles matching wts-frontend
+- `package.json` — Version 0.5.12 → 0.5.13
+
+---
+
+## Completed Previous Session (2026-02-25)
 
 ### Fix: Virtuoso Shrink Row Cleanup (0.5.12)
 
