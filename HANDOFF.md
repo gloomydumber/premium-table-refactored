@@ -8,6 +8,19 @@ Last updated: 2026-02-26
 
 ## Completed This Session (2026-02-26)
 
+### Fix: Upbit/Bithumb WebSocket Heartbeat (0.5.14)
+
+**Problem:** Upbit and Bithumb WebSocket connections have a 120-second idle timeout. Without application-level PING messages, connections could silently drop during low-activity periods.
+
+**Fix:** Added `heartbeatConfig: { message: 'PING', interval: 60_000 }` to both `upbitAdapter` and `bithumbAdapter`. The existing `useWebSocketHandler` already supports the `heartbeat` config via `react-use-websocket`. The `{"status":"UP"}` heartbeat response is already silently dropped by `parseUpbitJson` (returns null when no `cd`/`tp` fields).
+
+**Files changed:**
+- `src/exchanges/adapters/upbit.ts` — Added `heartbeatConfig`
+- `src/exchanges/adapters/bithumb.ts` — Added `heartbeatConfig`
+- `package.json` — Version 0.5.13 → 0.5.14
+
+---
+
 ### Fix: Scrollbar Styling — Defer to Host App (0.5.13)
 
 **Problem:** premium-table's `.pt-scroller` had its own hardcoded gray scrollbar styles (`rgba(128,128,128,0.2)`) which overrode the host app's global `*::-webkit-scrollbar` styles due to higher CSS specificity. In wts-frontend, this meant the premium table widget had gray scrollbars instead of matching the app's theme-aware green scrollbars.

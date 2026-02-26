@@ -10,6 +10,7 @@ export const upbitAdapter: ExchangeAdapter = {
   id: 'upbit',
   name: 'Upbit',
   availableQuoteCurrencies: ['KRW'],
+  heartbeatConfig: { message: 'PING', interval: 60_000 },
 
   getWebSocketUrl() {
     return 'wss://api.upbit.com/websocket/v1';

@@ -10,6 +10,7 @@ export const bithumbAdapter: ExchangeAdapter = {
   id: 'bithumb',
   name: 'Bithumb',
   availableQuoteCurrencies: ['KRW'],
+  heartbeatConfig: { message: 'PING', interval: 60_000 },
 
   getWebSocketUrl() {
     return 'wss://ws-api.bithumb.com/websocket/v1';
