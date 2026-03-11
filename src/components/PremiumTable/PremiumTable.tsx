@@ -6,9 +6,14 @@ import { WebSocketProvider } from '../WebSocketProvider';
 import { ArbitrageTable } from '../ArbitrageTable';
 import { defaultTheme } from './theme';
 
+/**
+ * Pre-fetched raw REST responses by exchange ID.
+ * When provided, adapters parse these instead of making their own REST calls.
+ * All normalization (e.g., BEAMX → BEAM) and filtering (delisted, halted)
+ * is handled by the adapters internally.
+ */
 export interface AvailableMarkets {
-  tickers: string[];
-  prices?: Map<string, number>;
+  rawResponses: Record<string, unknown>;
 }
 
 export interface PremiumTableProps {

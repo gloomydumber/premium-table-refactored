@@ -45,6 +45,16 @@ export const upbitAdapter: ExchangeAdapter = {
     return [];
   },
 
+  parseRawTickerData(data: unknown, quoteCurrency: string): string[] {
+    if (quoteCurrency !== 'KRW') return [];
+    const markets = data as { market: string }[];
+    const tickers = markets
+      .filter(m => m.market.startsWith('KRW-'))
+      .map(m => normalizer.toCanonical(m.market.split('-')[1]!));
+    cachedKrwTickers = tickers;
+    return tickers;
+  },
+
   async fetchAvailableTickers(quoteCurrency: string): Promise<string[]> {
     if (quoteCurrency !== 'KRW') return [];
     if (cachedKrwTickers) return cachedKrwTickers;
@@ -53,11 +63,7 @@ export const upbitAdapter: ExchangeAdapter = {
       const res = await fetch('https://api.upbit.com/v1/market/all');
       if (!res.ok) throw new Error(`Upbit REST ${res.status}`);
       const data = (await res.json()) as { market: string }[];
-      const tickers = data
-        .filter(m => m.market.startsWith('KRW-'))
-        .map(m => normalizer.toCanonical(m.market.split('-')[1]!));
-      cachedKrwTickers = tickers;
-      return tickers;
+      return this.parseRawTickerData!(data, quoteCurrency);
     } catch (e) {
       console.warn('Upbit REST fetch failed:', e);
       return [];

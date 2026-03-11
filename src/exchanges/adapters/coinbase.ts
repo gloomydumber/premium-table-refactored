@@ -59,28 +59,30 @@ export const coinbaseAdapter: ExchangeAdapter = {
     return tickerCache.get(quoteCurrency) ?? [];
   },
 
+  parseRawTickerData(data: unknown, _quoteCurrency: string): string[] {
+    const json = data as {
+      id: string; base_currency: string; quote_currency: string; status: string;
+    }[];
+    const tickers: string[] = [];
+    for (const item of json) {
+      if (item.quote_currency !== 'USD') continue;
+      if (item.status !== 'online') continue;
+      const canonical = normalizer.toCanonical(item.base_currency);
+      tickers.push(canonical);
+    }
+    tickerCache.set(_quoteCurrency, tickers);
+    return tickers;
+  },
+
   async fetchAvailableTickers(quoteCurrency: string): Promise<string[]> {
     const cached = tickerCache.get(quoteCurrency);
     if (cached) return cached;
 
     try {
-      // Use Exchange API (CORS-safe) — Advanced Trade API blocks browser CORS
       const res = await fetch('https://api.exchange.coinbase.com/products');
       if (!res.ok) throw new Error(`Coinbase REST ${res.status}`);
-      const json = (await res.json()) as {
-        id: string; base_currency: string; quote_currency: string; status: string;
-      }[];
-      const tickers: string[] = [];
-      for (const item of json) {
-        // Coinbase USD/USDC unified — filter by USD pairs
-        if (item.quote_currency !== 'USD') continue;
-        if (item.status !== 'online') continue;
-        const canonical = normalizer.toCanonical(item.base_currency);
-        tickers.push(canonical);
-      }
-      tickerCache.set(quoteCurrency, tickers);
-      // No REST prices from Exchange API — WS ticker_batch snapshot seeds within 5s
-      return tickers;
+      const data = await res.json();
+      return this.parseRawTickerData!(data, quoteCurrency);
     } catch (e) {
       console.warn('Coinbase REST fetch failed:', e);
       return [];

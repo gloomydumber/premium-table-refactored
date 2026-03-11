@@ -8,28 +8,37 @@ Last updated: 2026-03-11
 
 ## Completed This Session (2026-03-11)
 
-### Feature: `availableMarkets` Prop for Host-Provided Ticker Data
+### Breaking: `availableMarkets` Prop Redesigned to Raw Responses (0.7.0)
 
-**Purpose:** Allow host apps (e.g., wts-frontend) to pass pre-fetched ticker/price data, skipping the internal REST fetch. When omitted, the package fetches internally (standalone mode, fully backwards compatible).
+**Purpose:** Allow host apps to pass raw REST responses directly. Adapters handle all parsing, normalization (e.g., BEAMX→BEAM), and filtering (delisted, halted) internally. This eliminates the need for host apps to duplicate normalization logic.
 
-**Interface:**
+**Interface (breaking change from 0.6.0):**
 ```typescript
 interface AvailableMarkets {
-  tickers: string[]        // pre-fetched ticker list
-  prices?: Map<string, number>  // optional seed prices
+  rawResponses: Record<string, unknown>  // keyed by exchange ID
 }
 ```
 
 **Behavior:**
-- When `availableMarkets` is provided: skips `initMarketPairAsync()` (no REST call), uses `initMarketPairWithTickers()` to build the market pair with host-provided tickers, seeds prices from `availableMarkets.prices` if present.
-- When omitted: fetches internally as before (no breaking change).
+- When `availableMarkets.rawResponses` is provided: each adapter's `parseRawTickerData()` processes the raw JSON, populates internal caches (`tickerCache`, `restPriceCache`), and returns normalized tickers. No REST calls are made.
+- When omitted: fetches internally as before (standalone mode, no breaking change for standalone users).
+
+**New adapter method — `parseRawTickerData(data, quoteCurrency): string[]`:**
+Extracts the parse+normalize+cache logic from `fetchAvailableTickers`, minus the network call. Added to all 6 adapters: upbit, binance, bithumb, bybit, okx, coinbase. `fetchAvailableTickers` now delegates to `parseRawTickerData` after fetch.
+
+**New pair utility — `parseRawCommonTickers()`:**
+Takes two adapters + their raw data, runs `parseRawTickerData` on each, and intersects the results.
+
+**New marketPairAtom function — `initMarketPairWithRawData()`:**
+Replaces `initMarketPairWithTickers()`. Takes `rawResponses` record, calls `parseRawCommonTickers()`.
 
 **Files changed:**
-- `src/components/PremiumTable/PremiumTable.tsx` — Added `AvailableMarkets` interface and `availableMarkets?` prop, passed to `WebSocketProvider`
-- `src/components/PremiumTable/index.ts` — Re-export `AvailableMarkets` type
-- `src/components/WebSocketProvider/WebSocketProvider.tsx` — Accept `availableMarkets` prop, conditionally skip REST fetch, use host-provided seed prices
-- `src/store/marketPairAtom.ts` — Added `initMarketPairWithTickers()` function
-- `src/lib.ts` — Export `AvailableMarkets` type
+- `src/exchanges/types.ts` — Added `parseRawTickerData?` to `ExchangeAdapter` interface
+- `src/exchanges/adapters/{upbit,binance,bithumb,bybit,okx,coinbase}.ts` — Added `parseRawTickerData()`, refactored `fetchAvailableTickers` to delegate
+- `src/exchanges/pair.ts` — Added `parseRawCommonTickers()`
+- `src/store/marketPairAtom.ts` — Replaced `initMarketPairWithTickers` with `initMarketPairWithRawData`
+- `src/components/PremiumTable/PremiumTable.tsx` — Changed `AvailableMarkets` interface to `{ rawResponses }`
+- `src/components/WebSocketProvider/WebSocketProvider.tsx` — Updated to use `initMarketPairWithRawData`, seed prices from adapter cache
 
 ---
 

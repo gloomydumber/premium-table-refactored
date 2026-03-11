@@ -1,6 +1,6 @@
 import { atom } from 'jotai';
 import type { MarketPair } from '../exchanges/pair';
-import { resolveCommonTickers, fetchCommonTickers } from '../exchanges/pair';
+import { resolveCommonTickers, fetchCommonTickers, parseRawCommonTickers } from '../exchanges/pair';
 import { upbitAdapter, binanceAdapter } from '../exchanges/adapters';
 
 function buildDefaultMarketPair(): MarketPair {
@@ -44,11 +44,29 @@ export async function initMarketPairAsync(set: (pair: MarketPair) => void): Prom
 }
 
 /**
- * Initialize market pair with pre-fetched tickers (no REST call).
- * Used when the host app provides `availableMarkets.tickers`.
+ * Initialize market pair from pre-fetched raw REST responses.
+ * Each adapter's parseRawTickerData handles normalization and filtering.
+ * Used when the host app provides `availableMarkets.rawResponses`.
  */
-export function initMarketPairWithTickers(set: (pair: MarketPair) => void, tickers: string[]): void {
-  if (tickers.length === 0) return;
+export function initMarketPairWithRawData(
+  set: (pair: MarketPair) => void,
+  rawResponses: Record<string, unknown>,
+): void {
   const defaultPair = buildDefaultMarketPair();
-  set({ ...defaultPair, commonTickers: tickers });
+  const rawA = rawResponses[defaultPair.marketA.exchangeId];
+  const rawB = rawResponses[defaultPair.marketB.exchangeId];
+  if (!rawA || !rawB) return;
+
+  const tickers = parseRawCommonTickers(
+    defaultPair.adapterA,
+    defaultPair.marketA.quoteCurrency,
+    rawA,
+    defaultPair.adapterB,
+    defaultPair.marketB.quoteCurrency,
+    rawB,
+  );
+
+  if (tickers.length > 0) {
+    set({ ...defaultPair, commonTickers: tickers });
+  }
 }

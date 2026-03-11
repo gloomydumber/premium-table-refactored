@@ -64,6 +64,14 @@ export interface ExchangeAdapter {
   getCachedPrices?(quoteCurrency: string): Map<string, number>;
 
   /**
+   * Parse a pre-fetched raw REST response into tickers + prices.
+   * Same logic as fetchAvailableTickers but without the network call.
+   * Used when the host app provides raw data via `availableMarkets.rawResponses`.
+   * Updates internal caches so getCachedPrices/getAvailableTickers work after.
+   */
+  parseRawTickerData?(data: unknown, quoteCurrency: string): string[];
+
+  /**
    * Convert exchange-specific ticker symbol to a canonical base symbol.
    * e.g., Upbit "KRW-BTC" → "BTC", Binance "BTCUSDT" → "BTC"
    */

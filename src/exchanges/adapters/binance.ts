@@ -72,6 +72,25 @@ export const binanceAdapter: ExchangeAdapter = {
     return tickerCache.get(quoteCurrency) ?? [];
   },
 
+  parseRawTickerData(data: unknown, quoteCurrency: string): string[] {
+    const items = data as { symbol: string; price: string }[];
+    const tickers: string[] = [];
+    const prices = new Map<string, number>();
+    for (const item of items) {
+      if (!item.symbol.endsWith(quoteCurrency)) continue;
+      const p = Number(item.price);
+      if (!p || isNaN(p)) continue;
+      const base = item.symbol.slice(0, -quoteCurrency.length);
+      if (DELISTED_TICKERS.has(base)) continue;
+      const canonical = normalizer.toCanonical(base);
+      tickers.push(canonical);
+      prices.set(canonical, p);
+    }
+    tickerCache.set(quoteCurrency, tickers);
+    restPriceCache.set(quoteCurrency, prices);
+    return tickers;
+  },
+
   async fetchAvailableTickers(quoteCurrency: string): Promise<string[]> {
     const cached = tickerCache.get(quoteCurrency);
     if (cached) return cached;
@@ -79,23 +98,8 @@ export const binanceAdapter: ExchangeAdapter = {
     try {
       const res = await fetch('https://api.binance.com/api/v3/ticker/price');
       if (!res.ok) throw new Error(`Binance REST ${res.status}`);
-      const data = (await res.json()) as { symbol: string; price: string }[];
-      const tickers: string[] = [];
-      const prices = new Map<string, number>();
-      for (const item of data) {
-        if (!item.symbol.endsWith(quoteCurrency)) continue;
-        const p = Number(item.price);
-        // Skip delisted/halted pairs (price 0) and invalid prices
-        if (!p || isNaN(p)) continue;
-        const base = item.symbol.slice(0, -quoteCurrency.length);
-        if (DELISTED_TICKERS.has(base)) continue;
-        const canonical = normalizer.toCanonical(base);
-        tickers.push(canonical);
-        prices.set(canonical, p);
-      }
-      tickerCache.set(quoteCurrency, tickers);
-      restPriceCache.set(quoteCurrency, prices);
-      return tickers;
+      const data = await res.json();
+      return this.parseRawTickerData!(data, quoteCurrency);
     } catch (e) {
       console.warn('Binance REST fetch failed:', e);
       return [];

@@ -46,3 +46,26 @@ export async function fetchCommonTickers(
   ]);
   return resolveCommonTickers(tickersA, tickersB);
 }
+
+/**
+ * Parse pre-fetched raw REST responses through adapters and intersect.
+ * Used when the host app provides raw data via `availableMarkets.rawResponses`.
+ * All normalization (BEAMX → BEAM) and filtering (delisted, halted) is
+ * handled by each adapter's parseRawTickerData method.
+ */
+export function parseRawCommonTickers(
+  adapterA: ExchangeAdapter,
+  quoteCurrencyA: string,
+  rawDataA: unknown,
+  adapterB: ExchangeAdapter,
+  quoteCurrencyB: string,
+  rawDataB: unknown,
+): string[] {
+  const tickersA = adapterA.parseRawTickerData
+    ? adapterA.parseRawTickerData(rawDataA, quoteCurrencyA)
+    : adapterA.getAvailableTickers(quoteCurrencyA);
+  const tickersB = adapterB.parseRawTickerData
+    ? adapterB.parseRawTickerData(rawDataB, quoteCurrencyB)
+    : adapterB.getAvailableTickers(quoteCurrencyB);
+  return resolveCommonTickers(tickersA, tickersB);
+}

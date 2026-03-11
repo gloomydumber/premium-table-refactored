@@ -78,6 +78,25 @@ export const bybitAdapter: ExchangeAdapter = {
     return tickerCache.get(quoteCurrency) ?? [];
   },
 
+  parseRawTickerData(data: unknown, quoteCurrency: string): string[] {
+    const json = data as { result: { list: { symbol: string; lastPrice: string }[] } };
+    const tickers: string[] = [];
+    const prices = new Map<string, number>();
+    for (const item of json.result.list) {
+      if (!item.symbol.endsWith(quoteCurrency)) continue;
+      const p = Number(item.lastPrice);
+      if (!p || isNaN(p)) continue;
+      const base = item.symbol.slice(0, -quoteCurrency.length);
+      if (DELISTED_TICKERS.has(base)) continue;
+      const canonical = normalizer.toCanonical(base);
+      tickers.push(canonical);
+      prices.set(canonical, p);
+    }
+    tickerCache.set(quoteCurrency, tickers);
+    restPriceCache.set(quoteCurrency, prices);
+    return tickers;
+  },
+
   async fetchAvailableTickers(quoteCurrency: string): Promise<string[]> {
     const cached = tickerCache.get(quoteCurrency);
     if (cached) return cached;
@@ -85,24 +104,8 @@ export const bybitAdapter: ExchangeAdapter = {
     try {
       const res = await fetch('https://api.bybit.com/v5/market/tickers?category=spot');
       if (!res.ok) throw new Error(`Bybit REST ${res.status}`);
-      const json = (await res.json()) as {
-        result: { list: { symbol: string; lastPrice: string }[] };
-      };
-      const tickers: string[] = [];
-      const prices = new Map<string, number>();
-      for (const item of json.result.list) {
-        if (!item.symbol.endsWith(quoteCurrency)) continue;
-        const p = Number(item.lastPrice);
-        if (!p || isNaN(p)) continue;
-        const base = item.symbol.slice(0, -quoteCurrency.length);
-        if (DELISTED_TICKERS.has(base)) continue;
-        const canonical = normalizer.toCanonical(base);
-        tickers.push(canonical);
-        prices.set(canonical, p);
-      }
-      tickerCache.set(quoteCurrency, tickers);
-      restPriceCache.set(quoteCurrency, prices);
-      return tickers;
+      const data = await res.json();
+      return this.parseRawTickerData!(data, quoteCurrency);
     } catch (e) {
       console.warn('Bybit REST fetch failed:', e);
       return [];

@@ -73,6 +73,25 @@ export const okxAdapter: ExchangeAdapter = {
     return tickerCache.get(quoteCurrency) ?? [];
   },
 
+  parseRawTickerData(data: unknown, quoteCurrency: string): string[] {
+    const json = data as { data: { instId: string; last: string }[] };
+    const tickers: string[] = [];
+    const prices = new Map<string, number>();
+    for (const item of json.data) {
+      if (!item.instId.endsWith(`-${quoteCurrency}`)) continue;
+      const p = Number(item.last);
+      if (!p || isNaN(p)) continue;
+      const base = item.instId.split('-')[0];
+      if (DELISTED_TICKERS.has(base)) continue;
+      const canonical = normalizer.toCanonical(base);
+      tickers.push(canonical);
+      prices.set(canonical, p);
+    }
+    tickerCache.set(quoteCurrency, tickers);
+    restPriceCache.set(quoteCurrency, prices);
+    return tickers;
+  },
+
   async fetchAvailableTickers(quoteCurrency: string): Promise<string[]> {
     const cached = tickerCache.get(quoteCurrency);
     if (cached) return cached;
@@ -80,25 +99,8 @@ export const okxAdapter: ExchangeAdapter = {
     try {
       const res = await fetch('https://www.okx.com/api/v5/market/tickers?instType=SPOT');
       if (!res.ok) throw new Error(`OKX REST ${res.status}`);
-      const json = (await res.json()) as {
-        data: { instId: string; last: string }[];
-      };
-      const tickers: string[] = [];
-      const prices = new Map<string, number>();
-      for (const item of json.data) {
-        // instId format: "BTC-USDT" — filter by quote currency
-        if (!item.instId.endsWith(`-${quoteCurrency}`)) continue;
-        const p = Number(item.last);
-        if (!p || isNaN(p)) continue;
-        const base = item.instId.split('-')[0];
-        if (DELISTED_TICKERS.has(base)) continue;
-        const canonical = normalizer.toCanonical(base);
-        tickers.push(canonical);
-        prices.set(canonical, p);
-      }
-      tickerCache.set(quoteCurrency, tickers);
-      restPriceCache.set(quoteCurrency, prices);
-      return tickers;
+      const data = await res.json();
+      return this.parseRawTickerData!(data, quoteCurrency);
     } catch (e) {
       console.warn('OKX REST fetch failed:', e);
       return [];
