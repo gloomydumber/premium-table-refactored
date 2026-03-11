@@ -2,7 +2,34 @@
 
 Session handoff notes. Read this at the start of every session. Update it before closing.
 
-Last updated: 2026-02-26
+Last updated: 2026-03-11
+
+---
+
+## Completed This Session (2026-03-11)
+
+### Feature: `availableMarkets` Prop for Host-Provided Ticker Data
+
+**Purpose:** Allow host apps (e.g., wts-frontend) to pass pre-fetched ticker/price data, skipping the internal REST fetch. When omitted, the package fetches internally (standalone mode, fully backwards compatible).
+
+**Interface:**
+```typescript
+interface AvailableMarkets {
+  tickers: string[]        // pre-fetched ticker list
+  prices?: Map<string, number>  // optional seed prices
+}
+```
+
+**Behavior:**
+- When `availableMarkets` is provided: skips `initMarketPairAsync()` (no REST call), uses `initMarketPairWithTickers()` to build the market pair with host-provided tickers, seeds prices from `availableMarkets.prices` if present.
+- When omitted: fetches internally as before (no breaking change).
+
+**Files changed:**
+- `src/components/PremiumTable/PremiumTable.tsx` — Added `AvailableMarkets` interface and `availableMarkets?` prop, passed to `WebSocketProvider`
+- `src/components/PremiumTable/index.ts` — Re-export `AvailableMarkets` type
+- `src/components/WebSocketProvider/WebSocketProvider.tsx` — Accept `availableMarkets` prop, conditionally skip REST fetch, use host-provided seed prices
+- `src/store/marketPairAtom.ts` — Added `initMarketPairWithTickers()` function
+- `src/lib.ts` — Export `AvailableMarkets` type
 
 ---
 

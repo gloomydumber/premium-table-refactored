@@ -1,12 +1,17 @@
 import { useEffect, useRef } from 'react';
 import { useAtomValue, useSetAtom } from 'jotai';
-import { marketPairAtom, initMarketPairAsync } from '../../store/marketPairAtom';
+import { marketPairAtom, initMarketPairAsync, initMarketPairWithTickers } from '../../store/marketPairAtom';
 import { rowMapAtom, tickersAtom, crossRateAtom, pinnedAtom, openRowsAtom, mutedAtom, sortFrozenAtom, wsReadyStateAAtom, wsReadyStateBAtom } from '../../store/marketAtoms';
 import { useExchangeWebSocket } from '../../hooks/useExchangeWebSocket';
 import { initMarketData, clearMarketData, destroyMarketData, updatePrice } from '../../store/marketData';
 import { buildPrefsKey, loadPrefs } from '../../utils/prefsStorage';
+import type { AvailableMarkets } from '../PremiumTable/PremiumTable';
 
-export function WebSocketProvider() {
+export interface WebSocketProviderProps {
+  availableMarkets?: AvailableMarkets;
+}
+
+export function WebSocketProvider({ availableMarkets }: WebSocketProviderProps) {
   const pair = useAtomValue(marketPairAtom);
   const setPair = useSetAtom(marketPairAtom);
   const setRowMap = useSetAtom(rowMapAtom);
@@ -25,12 +30,16 @@ export function WebSocketProvider() {
   const marketKeyA = `${pair.marketA.exchangeId}:${pair.marketA.quoteCurrency}`;
   const marketKeyB = `${pair.marketB.exchangeId}:${pair.marketB.quoteCurrency}`;
 
-  // Fetch dynamic tickers from REST APIs on first mount
+  // Fetch dynamic tickers from REST APIs on first mount (skipped when availableMarkets provided)
   useEffect(() => {
     if (didFetchRef.current) return;
     didFetchRef.current = true;
-    initMarketPairAsync(setPair);
-  }, [setPair]);
+    if (availableMarkets) {
+      initMarketPairWithTickers(setPair, availableMarkets.tickers);
+    } else {
+      initMarketPairAsync(setPair);
+    }
+  }, [setPair, availableMarkets]);
 
   // Initialize/reinitialize market data when pair changes
   useEffect(() => {
@@ -44,23 +53,34 @@ export function WebSocketProvider() {
     initMarketData(marketKeyA, marketKeyB, setRowMap, setTickers, setCrossRate);
   }, [marketKeyA, marketKeyB, setRowMap, setTickers, setCrossRate, setPinned, setOpenRows, setMuted, setSortFrozen]);
 
-  // Seed initial prices from REST cache.
+  // Seed initial prices from REST cache or availableMarkets.prices.
   // Runs when `pair` updates (e.g., after initMarketPairAsync resolves with real tickers).
   useEffect(() => {
     if (pair.commonTickers.length === 0) return;
-    for (const [adapter, mKey, quoteCurrency] of [
-      [pair.adapterA, marketKeyA, pair.marketA.quoteCurrency],
-      [pair.adapterB, marketKeyB, pair.marketB.quoteCurrency],
-    ] as const) {
-      const cached = adapter.getCachedPrices?.(quoteCurrency);
-      if (cached) {
+    if (availableMarkets?.prices) {
+      // Use host-provided seed prices for both markets
+      for (const mKey of [marketKeyA, marketKeyB]) {
         for (const ticker of pair.commonTickers) {
-          const price = cached.get(ticker);
+          const price = availableMarkets.prices.get(ticker);
           if (price !== undefined) updatePrice(mKey, ticker, price);
         }
       }
+    } else {
+      // Standalone mode: use adapter REST cache
+      for (const [adapter, mKey, quoteCurrency] of [
+        [pair.adapterA, marketKeyA, pair.marketA.quoteCurrency],
+        [pair.adapterB, marketKeyB, pair.marketB.quoteCurrency],
+      ] as const) {
+        const cached = adapter.getCachedPrices?.(quoteCurrency);
+        if (cached) {
+          for (const ticker of pair.commonTickers) {
+            const price = cached.get(ticker);
+            if (price !== undefined) updatePrice(mKey, ticker, price);
+          }
+        }
+      }
     }
-  }, [pair, marketKeyA, marketKeyB]);
+  }, [pair, marketKeyA, marketKeyB, availableMarkets]);
 
   // Connect exchange A
   const readyStateA = useExchangeWebSocket(

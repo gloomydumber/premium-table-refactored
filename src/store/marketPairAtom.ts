@@ -42,3 +42,13 @@ export async function initMarketPairAsync(set: (pair: MarketPair) => void): Prom
     set({ ...defaultPair, commonTickers: dynamicTickers });
   }
 }
+
+/**
+ * Initialize market pair with pre-fetched tickers (no REST call).
+ * Used when the host app provides `availableMarkets.tickers`.
+ */
+export function initMarketPairWithTickers(set: (pair: MarketPair) => void, tickers: string[]): void {
+  if (tickers.length === 0) return;
+  const defaultPair = buildDefaultMarketPair();
+  set({ ...defaultPair, commonTickers: tickers });
+}

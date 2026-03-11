@@ -6,9 +6,15 @@ import { WebSocketProvider } from '../WebSocketProvider';
 import { ArbitrageTable } from '../ArbitrageTable';
 import { defaultTheme } from './theme';
 
+export interface AvailableMarkets {
+  tickers: string[];
+  prices?: Map<string, number>;
+}
+
 export interface PremiumTableProps {
   height?: string | number;
   theme?: Theme;
+  availableMarkets?: AvailableMarkets;
 }
 
 /** Measure pixel height via callback ref + ResizeObserver. */
@@ -36,14 +42,14 @@ function useContainerHeight() {
   return { ref, height };
 }
 
-export function PremiumTable({ height = '100vh', theme }: PremiumTableProps) {
+export function PremiumTable({ height = '100vh', theme, availableMarkets }: PremiumTableProps) {
   const { ref: containerRef, height: containerHeight } = useContainerHeight();
 
   return (
     <Provider>
       <ThemeProvider theme={theme ?? defaultTheme}>
         <CssBaseline />
-        <WebSocketProvider />
+        <WebSocketProvider availableMarkets={availableMarkets} />
         <Box ref={containerRef} sx={{ width: '100%', height }}>
           {containerHeight > 0 && <ArbitrageTable height={containerHeight} />}
         </Box>
