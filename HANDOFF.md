@@ -2,11 +2,24 @@
 
 Session handoff notes. Read this at the start of every session. Update it before closing.
 
-Last updated: 2026-03-11
+Last updated: 2026-03-12
 
 ---
 
-## Completed This Session (2026-03-11)
+## Completed This Session (2026-03-12)
+
+### Integration with wts-frontend Connection Orchestration
+
+**Context:** wts-frontend now fetches Upbit `market/all` and Binance `ticker/price` once via `ConnectionManager` (cached, deduplicated), stores raw responses in a Jotai atom, and passes them to PremiumTable via `availableMarkets.rawResponses`. The `parseRawTickerData()` method on each adapter handles all normalization (BEAMX→BEAM), filtering (delisted/halted), and caching internally.
+
+**Verified result (HAR analysis):**
+- Upbit `market/all`: 2x → **1x** (shared with Orderbook via same atom)
+- Binance `ticker/price`: 2x → **1x** (shared)
+- PremiumTable no longer makes its own REST calls when hosted in wts-frontend
+
+**Important:** wts-frontend gates PremiumTable render until shared data is available (`rawData !== null`). If the fetch fails, PremiumTable doesn't render. Standalone mode (no `availableMarkets` prop) is unaffected — fetches internally as before.
+
+---
 
 ### Breaking: `availableMarkets` Prop Redesigned to Raw Responses (0.7.0)
 
