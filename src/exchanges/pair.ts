@@ -49,7 +49,7 @@ export async function fetchCommonTickers(
 
 /**
  * Parse pre-fetched raw REST responses through adapters and intersect.
- * Used when the host app provides raw data via `availableMarkets.rawResponses`.
+ * Used when the host app provides raw data via `rawExchangeData.rawResponses`.
  * All normalization (BEAMX → BEAM) and filtering (delisted, halted) is
  * handled by each adapter's parseRawTickerData method.
  */

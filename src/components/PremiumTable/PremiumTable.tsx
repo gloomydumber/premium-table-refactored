@@ -11,15 +11,18 @@ import { defaultTheme } from './theme';
  * When provided, adapters parse these instead of making their own REST calls.
  * All normalization (e.g., BEAMX → BEAM) and filtering (delisted, halted)
  * is handled by the adapters internally.
+ *
+ * Aligned with `@gloomydumber/crypto-orderbook`'s `RawExchangeData` —
+ * same interface, same prop name across both packages.
  */
-export interface AvailableMarkets {
+export interface RawExchangeData {
   rawResponses: Record<string, unknown>;
 }
 
 export interface PremiumTableProps {
   height?: string | number;
   theme?: Theme;
-  availableMarkets?: AvailableMarkets;
+  rawExchangeData?: RawExchangeData;
 }
 
 /** Measure pixel height via callback ref + ResizeObserver. */
@@ -47,14 +50,14 @@ function useContainerHeight() {
   return { ref, height };
 }
 
-export function PremiumTable({ height = '100vh', theme, availableMarkets }: PremiumTableProps) {
+export function PremiumTable({ height = '100vh', theme, rawExchangeData }: PremiumTableProps) {
   const { ref: containerRef, height: containerHeight } = useContainerHeight();
 
   return (
     <Provider>
       <ThemeProvider theme={theme ?? defaultTheme}>
         <CssBaseline />
-        <WebSocketProvider availableMarkets={availableMarkets} />
+        <WebSocketProvider rawExchangeData={rawExchangeData} />
         <Box ref={containerRef} sx={{ width: '100%', height }}>
           {containerHeight > 0 && <ArbitrageTable height={containerHeight} />}
         </Box>

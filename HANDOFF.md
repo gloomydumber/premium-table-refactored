@@ -8,32 +8,52 @@ Last updated: 2026-03-12
 
 ## Completed This Session (2026-03-12)
 
+### Breaking: Rename `availableMarkets` → `rawExchangeData` (0.8.0)
+
+**Purpose:** Align prop naming with `@gloomydumber/crypto-orderbook`. Both packages now use the same interface and prop name — `rawExchangeData: RawExchangeData` — so host apps can share a single data source across widgets with a consistent API.
+
+**Interface (breaking change from 0.7.0):**
+```typescript
+// Same interface in both @gloomydumber/premium-table and @gloomydumber/crypto-orderbook
+interface RawExchangeData {
+  rawResponses: Record<string, unknown>  // keyed by exchange ID
+}
+
+// Before (0.7.0):  <PremiumTable availableMarkets={data} />
+// After  (0.8.0):  <PremiumTable rawExchangeData={data} />
+```
+
+**Files changed:**
+- `src/components/PremiumTable/PremiumTable.tsx` — `AvailableMarkets` → `RawExchangeData`, `availableMarkets` → `rawExchangeData`
+- `src/components/PremiumTable/index.ts` — Re-export renamed type
+- `src/components/WebSocketProvider/WebSocketProvider.tsx` — Prop renamed
+- `src/exchanges/types.ts` — Comment updated
+- `src/exchanges/pair.ts` — Comments updated
+- `src/store/marketPairAtom.ts` — Comment updated
+- `src/lib.ts` — Re-export renamed type
+- `README.md` — Updated props table, added host integration example, added `RawExchangeData` to exports
+
+---
+
 ### Integration with wts-frontend Connection Orchestration
 
-**Context:** wts-frontend now fetches Upbit `market/all` and Binance `ticker/price` once via `ConnectionManager` (cached, deduplicated), stores raw responses in a Jotai atom, and passes them to PremiumTable via `availableMarkets.rawResponses`. The `parseRawTickerData()` method on each adapter handles all normalization (BEAMX→BEAM), filtering (delisted/halted), and caching internally.
+**Context:** wts-frontend's `ConnectionManager` + `MarketDataClient` layer deduplicates all external REST endpoint requests by URL (same URL = same cached/in-flight Promise). Raw responses are stored in a shared Jotai atom and passed to PremiumTable via `rawExchangeData.rawResponses`. The `parseRawTickerData()` method on each adapter handles all normalization (BEAMX→BEAM), filtering (delisted/halted), and caching internally.
 
 **Verified result (HAR analysis):**
 - Upbit `market/all`: 2x → **1x** (shared with Orderbook via same atom)
 - Binance `ticker/price`: 2x → **1x** (shared)
 - PremiumTable no longer makes its own REST calls when hosted in wts-frontend
 
-**Important:** wts-frontend gates PremiumTable render until shared data is available (`rawData !== null`). If the fetch fails, PremiumTable doesn't render. Standalone mode (no `availableMarkets` prop) is unaffected — fetches internally as before.
+**Important:** wts-frontend gates PremiumTable render until shared data is available (`rawData !== null`). If the fetch fails, PremiumTable doesn't render. Standalone mode (no `rawExchangeData` prop) is unaffected — fetches internally as before.
 
 ---
 
-### Breaking: `availableMarkets` Prop Redesigned to Raw Responses (0.7.0)
+### Raw Responses Prop Pattern (0.7.0, renamed in 0.8.0)
 
 **Purpose:** Allow host apps to pass raw REST responses directly. Adapters handle all parsing, normalization (e.g., BEAMX→BEAM), and filtering (delisted, halted) internally. This eliminates the need for host apps to duplicate normalization logic.
 
-**Interface (breaking change from 0.6.0):**
-```typescript
-interface AvailableMarkets {
-  rawResponses: Record<string, unknown>  // keyed by exchange ID
-}
-```
-
 **Behavior:**
-- When `availableMarkets.rawResponses` is provided: each adapter's `parseRawTickerData()` processes the raw JSON, populates internal caches (`tickerCache`, `restPriceCache`), and returns normalized tickers. No REST calls are made.
+- When `rawExchangeData.rawResponses` is provided: each adapter's `parseRawTickerData()` processes the raw JSON, populates internal caches (`tickerCache`, `restPriceCache`), and returns normalized tickers. No REST calls are made.
 - When omitted: fetches internally as before (standalone mode, no breaking change for standalone users).
 
 **New adapter method — `parseRawTickerData(data, quoteCurrency): string[]`:**
@@ -45,12 +65,12 @@ Takes two adapters + their raw data, runs `parseRawTickerData` on each, and inte
 **New marketPairAtom function — `initMarketPairWithRawData()`:**
 Replaces `initMarketPairWithTickers()`. Takes `rawResponses` record, calls `parseRawCommonTickers()`.
 
-**Files changed:**
+**Files changed (0.7.0):**
 - `src/exchanges/types.ts` — Added `parseRawTickerData?` to `ExchangeAdapter` interface
 - `src/exchanges/adapters/{upbit,binance,bithumb,bybit,okx,coinbase}.ts` — Added `parseRawTickerData()`, refactored `fetchAvailableTickers` to delegate
 - `src/exchanges/pair.ts` — Added `parseRawCommonTickers()`
 - `src/store/marketPairAtom.ts` — Replaced `initMarketPairWithTickers` with `initMarketPairWithRawData`
-- `src/components/PremiumTable/PremiumTable.tsx` — Changed `AvailableMarkets` interface to `{ rawResponses }`
+- `src/components/PremiumTable/PremiumTable.tsx` — Added `rawResponses`-based interface
 - `src/components/WebSocketProvider/WebSocketProvider.tsx` — Updated to use `initMarketPairWithRawData`, seed prices from adapter cache
 
 ---

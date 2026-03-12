@@ -46,7 +46,7 @@ export async function initMarketPairAsync(set: (pair: MarketPair) => void): Prom
 /**
  * Initialize market pair from pre-fetched raw REST responses.
  * Each adapter's parseRawTickerData handles normalization and filtering.
- * Used when the host app provides `availableMarkets.rawResponses`.
+ * Used when the host app provides `rawExchangeData.rawResponses`.
  */
 export function initMarketPairWithRawData(
   set: (pair: MarketPair) => void,

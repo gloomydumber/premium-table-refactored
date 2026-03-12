@@ -66,7 +66,7 @@ export interface ExchangeAdapter {
   /**
    * Parse a pre-fetched raw REST response into tickers + prices.
    * Same logic as fetchAvailableTickers but without the network call.
-   * Used when the host app provides raw data via `availableMarkets.rawResponses`.
+   * Used when the host app provides raw data via `rawExchangeData.rawResponses`.
    * Updates internal caches so getCachedPrices/getAvailableTickers work after.
    */
   parseRawTickerData?(data: unknown, quoteCurrency: string): string[];

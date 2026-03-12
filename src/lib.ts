@@ -3,7 +3,7 @@ import './lib-styles.css';
 
 // Main component
 export { PremiumTable } from './components/PremiumTable';
-export type { PremiumTableProps, AvailableMarkets } from './components/PremiumTable';
+export type { PremiumTableProps, RawExchangeData } from './components/PremiumTable';
 
 // Types (for WTS integration)
 export type { MarketRow, WalletStatus } from './types/market';

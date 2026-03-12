@@ -5,13 +5,13 @@ import { rowMapAtom, tickersAtom, crossRateAtom, pinnedAtom, openRowsAtom, muted
 import { useExchangeWebSocket } from '../../hooks/useExchangeWebSocket';
 import { initMarketData, clearMarketData, destroyMarketData, updatePrice } from '../../store/marketData';
 import { buildPrefsKey, loadPrefs } from '../../utils/prefsStorage';
-import type { AvailableMarkets } from '../PremiumTable/PremiumTable';
+import type { RawExchangeData } from '../PremiumTable/PremiumTable';
 
 export interface WebSocketProviderProps {
-  availableMarkets?: AvailableMarkets;
+  rawExchangeData?: RawExchangeData;
 }
 
-export function WebSocketProvider({ availableMarkets }: WebSocketProviderProps) {
+export function WebSocketProvider({ rawExchangeData }: WebSocketProviderProps) {
   const pair = useAtomValue(marketPairAtom);
   const setPair = useSetAtom(marketPairAtom);
   const setRowMap = useSetAtom(rowMapAtom);
@@ -31,17 +31,17 @@ export function WebSocketProvider({ availableMarkets }: WebSocketProviderProps) 
   const marketKeyB = `${pair.marketB.exchangeId}:${pair.marketB.quoteCurrency}`;
 
   // Fetch dynamic tickers on first mount.
-  // When availableMarkets.rawResponses is provided, adapters parse them locally
+  // When rawExchangeData.rawResponses is provided, adapters parse them locally
   // (with normalization + filtering) instead of making REST calls.
   useEffect(() => {
     if (didFetchRef.current) return;
     didFetchRef.current = true;
-    if (availableMarkets) {
-      initMarketPairWithRawData(setPair, availableMarkets.rawResponses);
+    if (rawExchangeData) {
+      initMarketPairWithRawData(setPair, rawExchangeData.rawResponses);
     } else {
       initMarketPairAsync(setPair);
     }
-  }, [setPair, availableMarkets]);
+  }, [setPair, rawExchangeData]);
 
   // Initialize/reinitialize market data when pair changes
   useEffect(() => {

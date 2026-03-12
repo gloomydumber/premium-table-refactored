@@ -67,13 +67,13 @@ The CSS import is required — it bundles the JetBrains Mono font and base style
 |------|------|---------|-------------|
 | `height` | `string \| number` | `'100vh'` | Container height. Accepts any CSS value. |
 | `theme` | `MUI Theme` | Dark theme | Custom MUI theme override. |
+| `rawExchangeData` | `RawExchangeData` | — | Host-provided raw REST responses. Skips internal REST fetches when provided. |
 
 The component creates its own Jotai `<Provider>`, so its atoms are isolated from your app's Jotai store.
 
 ```tsx
-// Custom height
+// Standalone — fetches exchange data internally
 <PremiumTable height={600} />
-<PremiumTable height="calc(100vh - 64px)" />
 
 // Custom MUI theme
 import { createTheme } from "@mui/material";
@@ -81,12 +81,33 @@ const myTheme = createTheme({ palette: { mode: "dark" } });
 <PremiumTable theme={myTheme} />
 ```
 
+### Host-Provided Exchange Data
+
+When embedding in a host app that already fetches exchange REST data (e.g., for shared caching across widgets), pass raw responses via `rawExchangeData`. Each adapter handles parsing, normalization (e.g., BEAMX → BEAM), and filtering (delisted/halted) internally.
+
+```tsx
+import { PremiumTable } from "@gloomydumber/premium-table";
+import type { RawExchangeData } from "@gloomydumber/premium-table";
+
+// Host app fetches raw REST responses once and shares across widgets
+const rawExchangeData: RawExchangeData = {
+  rawResponses: {
+    upbit: upbitMarketAllResponse,    // raw JSON from https://api.upbit.com/v1/market/all
+    binance: binanceTickerResponse,   // raw JSON from https://api.binance.com/api/v3/ticker/price
+  }
+};
+
+<PremiumTable rawExchangeData={rawExchangeData} />
+```
+
+When `rawExchangeData` is omitted, the component fetches internally (standalone mode). This prop uses the same interface as `@gloomydumber/crypto-orderbook`'s `rawExchangeData` — both packages accept `{ rawResponses: Record<string, unknown> }`, enabling a single shared data source across widgets.
+
 ### Exports
 
 ```ts
 // Component
 import { PremiumTable } from "@gloomydumber/premium-table";
-import type { PremiumTableProps } from "@gloomydumber/premium-table";
+import type { PremiumTableProps, RawExchangeData } from "@gloomydumber/premium-table";
 
 // Types
 import type { MarketRow, WalletStatus } from "@gloomydumber/premium-table";
@@ -96,6 +117,9 @@ import type { ExchangeAdapter, NormalizedTick } from "@gloomydumber/premium-tabl
 import {
   upbitAdapter, binanceAdapter, bybitAdapter, bithumbAdapter, okxAdapter, coinbaseAdapter,
 } from "@gloomydumber/premium-table";
+
+// Control API
+import { setUpdatesPaused, setFlushInterval, destroyMarketData } from "@gloomydumber/premium-table";
 ```
 
 ## Features
@@ -152,7 +176,7 @@ Pin and mute are mutually exclusive — pinning unmutes, muting unpins.
 
 ### Preference Persistence
 
-Pin, mute, and expand state is saved to `localStorage` per market pair tab. Preferences survive page refreshes and tab switches — switching from USDT to USDC and back restores your USDT pins. A reset button (↻) in the PREMIUM header clears all preferences for the current tab.
+Pin, mute, and expand state is saved to `localStorage` per market pair tab. Preferences survive page refreshes and tab switches — switching from USDT to USDC and back restores your USDT pins. A reset button in the PREMIUM header clears all preferences for the current tab.
 
 ### Sort Order
 
@@ -183,7 +207,7 @@ Each exchange has a distinct brand color used in table header price columns and 
 | Bithumb | Orange (`#F37321`) |
 | Binance | Gold (`#F0B90B`) |
 | Bybit | Teal (`#00C4B3`) |
-| Coinbase | White (`#FFFFFF`) |
+| Coinbase | Blue (`#0052FF`) |
 | OKX | Silver (`#CFD3D8`) |
 
 ### Wallet Status Detail
@@ -210,11 +234,14 @@ interface ExchangeAdapter {
   name: string;
   availableQuoteCurrencies: string[];
   getWebSocketUrl(quoteCurrency: string, tickers: string[]): string;
-  getSubscribeMessage?(quoteCurrency: string, tickers: string[], crossRateTicker?: string): string;
+  getSubscribeMessage?(quoteCurrency: string, tickers: string[], crossRateTicker?: string): string | string[];
   parseMessage(data: unknown): NormalizedTick | null;
   getAvailableTickers(quoteCurrency: string): string[];
   fetchAvailableTickers?(quoteCurrency: string): Promise<string[]>;
+  parseRawTickerData?(data: unknown, quoteCurrency: string): string[];
+  getCachedPrices?(quoteCurrency: string): Map<string, number>;
   normalizeSymbol(rawSymbol: string, quoteCurrency: string): string;
+  heartbeatConfig?: { message: string; interval: number };
 }
 ```
 
