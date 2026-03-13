@@ -2,6 +2,7 @@ import { atom } from 'jotai';
 import { selectAtom } from 'jotai/utils';
 import type { Atom } from 'jotai';
 import type { MarketRow } from '../types/market';
+import { koreanToEnglish } from '../utils/koreanToEnglish';
 
 export type RowMap = Record<string, MarketRow>;
 
@@ -123,8 +124,8 @@ const _filteredSortedAtom = atom<string[]>((get) => {
   const sorted = get(_freezeAwareSortedAtom);
   const filter = get(filterAtom);
   if (!filter) return sorted;
-  const upper = filter.toUpperCase();
-  return sorted.filter((t) => t.toUpperCase().includes(upper));
+  const query = koreanToEnglish(filter).toUpperCase();
+  return sorted.filter((t) => t.toUpperCase().includes(query));
 });
 
 /**

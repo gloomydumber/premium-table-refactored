@@ -8,7 +8,7 @@ Last updated: 2026-03-13
 
 ## Completed This Session (2026-03-13)
 
-### Ticker Search/Filter (0.9.0 → 0.9.1)
+### Ticker Search/Filter (0.9.0 → 0.10.0)
 
 **Purpose:** Add inline search input to filter the table by ticker name. Substring match (e.g., "USD" matches USDT, USDC, BUSD).
 
@@ -19,6 +19,7 @@ Last updated: 2026-03-13
 - Column widths rebalanced: 16%/30%/30%/24% → 24%/26%/26%/24% to accommodate the wider ticker column.
 - Filter clears on exchange pair change and stablecoin tab change.
 - `spellCheck={false}` and `autoComplete="off"` on input to suppress browser spellcheck red underlines on ticker names.
+- Korean 2-set (두벌식) keyboard mapping: typing `ㅠㅅㅊ` matches BTC, `ㄷㅅ` matches ETH/ETC. Handles standalone jamo, composed syllable blocks, and mixed input. Utility in `src/utils/koreanToEnglish.ts`.
 - No new props — entirely internal to the package.
 
 **Files changed:**
