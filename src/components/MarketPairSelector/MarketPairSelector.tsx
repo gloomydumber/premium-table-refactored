@@ -1,11 +1,13 @@
-import { useAtom } from 'jotai';
+import { useAtom, useSetAtom } from 'jotai';
 import { Box, Tabs, Tab, Select, MenuItem } from '@mui/material';
 import type { SelectChangeEvent } from '@mui/material';
 import { marketPairAtom } from '../../store/marketPairAtom';
+import { filterAtom } from '../../store/marketAtoms';
 import { resolveCommonTickers, fetchCommonTickers } from '../../exchanges/pair';
 import type { MarketPair, CrossRateConfig } from '../../exchanges/pair';
 import type { ExchangeAdapter } from '../../exchanges/types';
 import { upbitAdapter, binanceAdapter, bybitAdapter, bithumbAdapter, okxAdapter, coinbaseAdapter } from '../../exchanges/adapters';
+import { TickerFilter } from './TickerFilter';
 
 interface CexPairConfig {
   label: string;
@@ -88,6 +90,7 @@ const innerTabSx = {
 
 export function MarketPairSelector() {
   const [pair, setPair] = useAtom(marketPairAtom);
+  const setFilter = useSetAtom(filterAtom);
 
   const currentCexIndex = AVAILABLE_CEX_PAIRS.findIndex(
     p => p.adapterA.id === pair.adapterA.id && p.adapterB.id === pair.adapterB.id,
@@ -130,12 +133,14 @@ export function MarketPairSelector() {
   };
 
   const handleCexChange = (event: SelectChangeEvent<number>) => {
+    setFilter('');
     applyCexPair(event.target.value as number);
     // Remove focus highlight after selection
     (document.activeElement as HTMLElement)?.blur();
   };
 
   const handleStablecoinChange = (_: React.SyntheticEvent, index: number) => {
+    setFilter('');
     const selectedStablecoin = stablecoins[index];
     const isKoreanA = cexConfig.adapterA.availableQuoteCurrencies.includes('KRW');
     const quoteCurrencyA = isKoreanA ? 'KRW' : selectedStablecoin;
@@ -165,6 +170,7 @@ export function MarketPairSelector() {
 
   return (
     <Box>
+      <Box sx={{ display: 'flex', gap: '4px', alignItems: 'center', height: 18, flexShrink: 0 }}>
       <Select
         value={currentCexIndex >= 0 ? currentCexIndex : 0}
         onChange={handleCexChange}
@@ -172,11 +178,11 @@ export function MarketPairSelector() {
         size="small"
         variant="outlined"
         sx={{
+          flex: '0 0 auto',
           fontFamily: 'inherit',
           fontSize: '0.6rem',
           color: 'primary.main',
           height: 18,
-          maxWidth: '100%',
           '& .MuiSelect-select': {
             py: '1px',
             px: '6px',
@@ -224,6 +230,8 @@ export function MarketPairSelector() {
           <MenuItem key={config.label} value={i}>{config.label}</MenuItem>
         ))}
       </Select>
+      <TickerFilter />
+      </Box>
 
       <Tabs
         value={stablecoins.length > 0 ? (stablecoinIndex >= 0 ? stablecoinIndex : 0) : 0}

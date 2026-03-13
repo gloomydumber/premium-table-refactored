@@ -132,12 +132,12 @@ const resetIconSx = { fontSize: 14, color: 'text.secondary' } as const;
 
 const headerRowSx = { backgroundColor: 'background.default' } as const;
 const headerCellBaseSx = { borderBottom: 1, borderColor: 'divider' } as const;
-const headerCellTickerSx = { ...headerCellBaseSx, width: '16%', verticalAlign: 'bottom', p: '0 8px 4px' } as const;
+const headerCellTickerSx = { ...headerCellBaseSx, width: '24%', verticalAlign: 'bottom', p: '0 8px 4px' } as const;
 const headerCellPremiumSx = { ...headerCellBaseSx, width: '24%' } as const;
 const premiumBoxSx = { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 } as const;
 
 function headerCellExchangeSx(color: string) {
-  return { ...headerCellBaseSx, width: '30%', color } as const;
+  return { ...headerCellBaseSx, width: '26%', color } as const;
 }
 
 function wsStatusDot(readyState: number, exchangeName: string) {

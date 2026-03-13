@@ -2,11 +2,33 @@
 
 Session handoff notes. Read this at the start of every session. Update it before closing.
 
-Last updated: 2026-03-12
+Last updated: 2026-03-13
 
 ---
 
-## Completed This Session (2026-03-12)
+## Completed This Session (2026-03-13)
+
+### Ticker Search/Filter (0.9.0)
+
+**Purpose:** Add inline search input to filter the table by ticker name. Substring match (e.g., "USD" matches USDT, USDC, BUSD).
+
+**Implementation:**
+- `filterAtom` in `marketAtoms.ts` — holds search string, applied after freeze-aware sort layer so filtering works even during sort freeze (mouse hover)
+- `TickerFilter` component — plain `<div>` + `<input>` with inline styles (no MUI overhead). Lucide search SVG icon as placeholder, hides on focus. `React.memo` wrapped.
+- Placed side-by-side with exchange pair Select in `MarketPairSelector` via flexbox row. Select is `flex: 0 0 auto`, filter is `flex: 1`.
+- Column widths rebalanced: 16%/30%/30%/24% → 24%/26%/26%/24% to accommodate the wider ticker column.
+- Filter clears on exchange pair change and stablecoin tab change.
+- No new props — entirely internal to the package.
+
+**Files changed:**
+- `src/store/marketAtoms.ts` — `filterAtom`, `_filteredSortedAtom`
+- `src/components/MarketPairSelector/TickerFilter.tsx` (new)
+- `src/components/MarketPairSelector/MarketPairSelector.tsx` — flex row, filter clear on pair/tab change
+- `src/components/ArbitrageTable/ArbitrageTable.tsx` — column width update
+
+---
+
+## Completed Previous Session (2026-03-12)
 
 ### Breaking: Rename `availableMarkets` → `rawExchangeData` (0.8.0)
 

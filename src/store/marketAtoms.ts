@@ -42,6 +42,9 @@ export const mutedAtom = atom<Set<string>>(new Set<string>());
 /** When true, sortedTickersAtom returns a frozen snapshot (no re-sorting) */
 export const sortFrozenAtom = atom(false);
 
+/** Ticker search filter — case-insensitive substring match. Empty = show all. */
+export const filterAtom = atom('');
+
 /** WebSocket readyState for exchange A (0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED) */
 export const wsReadyStateAAtom = atom<number>(3);
 
@@ -113,14 +116,26 @@ const _freezeAwareSortedAtom = atom<string[]>((get) => {
 });
 
 /**
- * Derived read-only atom: sorted ticker list.
+ * Filter applied AFTER freeze so typing always takes effect immediately,
+ * even while sort order is frozen (mouse hovering over tbody).
+ */
+const _filteredSortedAtom = atom<string[]>((get) => {
+  const sorted = get(_freezeAwareSortedAtom);
+  const filter = get(filterAtom);
+  if (!filter) return sorted;
+  const upper = filter.toUpperCase();
+  return sorted.filter((t) => t.toUpperCase().includes(upper));
+});
+
+/**
+ * Derived read-only atom: sorted (and optionally filtered) ticker list.
  * ArbitrageTable reads ONLY this — never rowMapAtom directly.
  *
  * Uses selectAtom with array equality to maintain referential stability:
  * if cross-rate changes but sort order is identical, no re-render.
  */
 export const sortedTickersAtom = selectAtom(
-  _freezeAwareSortedAtom,
+  _filteredSortedAtom,
   (v) => v,
   (a, b) => a.length === b.length && a.every((v, i) => v === b[i]),
 );
