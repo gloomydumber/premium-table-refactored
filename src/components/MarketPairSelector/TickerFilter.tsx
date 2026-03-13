@@ -74,6 +74,8 @@ function TickerFilterInner() {
         onKeyDown={handleKeyDown}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
+        spellCheck={false}
+        autoComplete="off"
         style={{
           border: 'none',
           outline: 'none',

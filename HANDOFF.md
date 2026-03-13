@@ -8,7 +8,7 @@ Last updated: 2026-03-13
 
 ## Completed This Session (2026-03-13)
 
-### Ticker Search/Filter (0.9.0)
+### Ticker Search/Filter (0.9.0 → 0.9.1)
 
 **Purpose:** Add inline search input to filter the table by ticker name. Substring match (e.g., "USD" matches USDT, USDC, BUSD).
 
@@ -18,6 +18,7 @@ Last updated: 2026-03-13
 - Placed side-by-side with exchange pair Select in `MarketPairSelector` via flexbox row. Select is `flex: 0 0 auto`, filter is `flex: 1`.
 - Column widths rebalanced: 16%/30%/30%/24% → 24%/26%/26%/24% to accommodate the wider ticker column.
 - Filter clears on exchange pair change and stablecoin tab change.
+- `spellCheck={false}` and `autoComplete="off"` on input to suppress browser spellcheck red underlines on ticker names.
 - No new props — entirely internal to the package.
 
 **Files changed:**
