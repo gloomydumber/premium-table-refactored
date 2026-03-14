@@ -1,4 +1,4 @@
-const PREFIX = 'premium-table:prefs:';
+const PREFIX = 'wts:premium:prefs:';
 
 export function buildPrefsKey(marketKeyA: string, marketKeyB: string): string {
   return `${PREFIX}${marketKeyA}|${marketKeyB}`;

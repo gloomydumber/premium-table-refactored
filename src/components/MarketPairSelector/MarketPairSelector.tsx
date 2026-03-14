@@ -1,10 +1,10 @@
 import { useAtom, useSetAtom } from 'jotai';
 import { Box, Tabs, Tab, Select, MenuItem } from '@mui/material';
 import type { SelectChangeEvent } from '@mui/material';
-import { marketPairAtom } from '../../store/marketPairAtom';
+import { marketPairAtom, persistMarketPairSelection, buildCrossRateConfig } from '../../store/marketPairAtom';
 import { filterAtom } from '../../store/marketAtoms';
 import { resolveCommonTickers, fetchCommonTickers } from '../../exchanges/pair';
-import type { MarketPair, CrossRateConfig } from '../../exchanges/pair';
+import type { MarketPair } from '../../exchanges/pair';
 import type { ExchangeAdapter } from '../../exchanges/types';
 import { upbitAdapter, binanceAdapter, bybitAdapter, bithumbAdapter, okxAdapter, coinbaseAdapter } from '../../exchanges/adapters';
 import { TickerFilter } from './TickerFilter';
@@ -43,18 +43,6 @@ function getAvailableStablecoins(adapterA: ExchangeAdapter, adapterB: ExchangeAd
 
   const setB = new Set(adapterB.availableQuoteCurrencies);
   return adapterA.availableQuoteCurrencies.filter(q => setB.has(q));
-}
-
-function buildCrossRateConfig(
-  adapterA: ExchangeAdapter,
-  quoteCurrencyA: string,
-  quoteCurrencyB: string,
-): CrossRateConfig {
-  if (quoteCurrencyA === quoteCurrencyB) return { type: 'fixed', rate: 1 };
-  if (quoteCurrencyA === 'KRW' && (quoteCurrencyB === 'USDT' || quoteCurrencyB === 'USDC')) {
-    return { type: 'ticker', exchangeId: adapterA.id, code: `KRW-${quoteCurrencyB}` };
-  }
-  return { type: 'btc-derived' };
 }
 
 /** Short exchange names for the compact selected-value display */
@@ -123,6 +111,7 @@ export function MarketPairSelector() {
       crossRateSource: buildCrossRateConfig(config.adapterA, quoteCurrencyA, quoteCurrencyB),
     };
     setPair(basePair);
+    persistMarketPairSelection(basePair);
 
     fetchCommonTickers(config.adapterA, quoteCurrencyA, config.adapterB, quoteCurrencyB)
       .then(dynamicTickers => {
@@ -159,6 +148,7 @@ export function MarketPairSelector() {
       crossRateSource: buildCrossRateConfig(cexConfig.adapterA, quoteCurrencyA, quoteCurrencyB),
     };
     setPair(basePair);
+    persistMarketPairSelection(basePair);
 
     fetchCommonTickers(cexConfig.adapterA, quoteCurrencyA, cexConfig.adapterB, quoteCurrencyB)
       .then(dynamicTickers => {

@@ -6,7 +6,38 @@ Last updated: 2026-03-13
 
 ---
 
-## Completed This Session (2026-03-13)
+## Completed This Session (2026-03-14)
+
+### localStorage Key Convention + Persist Exchange Pair (0.10.0 → 0.11.0)
+
+**Purpose:** Adopt the `wts:<widget>:<key>` localStorage key convention shared across wts-frontend and all widget packages. Persist the user's exchange pair selection so it survives page refresh.
+
+**Key convention changes:**
+- `premium-table:prefs:*` → `wts:premium:prefs:*` (pin/mute/openRows per tab)
+- New keys for persisted exchange pair selection:
+  - `wts:premium:exchangeA` — e.g., `"upbit"`
+  - `wts:premium:exchangeB` — e.g., `"binance"`
+  - `wts:premium:quoteA` — e.g., `"KRW"`
+  - `wts:premium:quoteB` — e.g., `"USDT"`
+
+**Exchange pair persistence:**
+- `marketPairAtom` was a plain `atom()` — reset to Upbit–Binance on every refresh.
+- Now `buildDefaultMarketPair()` reads persisted exchange IDs + quote currencies from localStorage via `hydrate()` (sync read at module init, NOT related to SSR/React hydration).
+- Cannot use `atomWithStorage` / `getOnInit` because `MarketPair` contains adapter objects (functions) that can't be serialized.
+- `persistMarketPairSelection(pair)` writes the 4 keys on user action.
+- `buildCrossRateConfig()` extracted from `MarketPairSelector` and exported from `marketPairAtom.ts` (shared, no duplication).
+- Adapter lookup validates both IDs exist and differ; falls back to Upbit–Binance on invalid data.
+
+**Host app benefit:** wts-frontend's ConnectionManager reads `wts:premium:exchangeA/B` from localStorage to dynamically fetch only the exchanges the user has selected — no wasted requests for unused exchanges.
+
+**Files changed:**
+- `src/store/marketPairAtom.ts` — `hydrate()`, `persistMarketPairSelection()`, `buildCrossRateConfig()` export, adapter registry
+- `src/components/MarketPairSelector/MarketPairSelector.tsx` — calls `persistMarketPairSelection()` on exchange/stablecoin change, imports `buildCrossRateConfig`
+- `src/utils/prefsStorage.ts` — prefix rename
+
+---
+
+## Completed Previous Session (2026-03-13)
 
 ### Ticker Search/Filter (0.9.0 → 0.10.0)
 
